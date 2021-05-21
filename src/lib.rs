@@ -1,3 +1,6 @@
+mod bip32;
+mod keys;
+
 #[cfg(test)]
 mod tests {
     #[test]
