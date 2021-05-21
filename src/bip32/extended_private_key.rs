@@ -76,8 +76,8 @@ impl ExtendedPrivateKey {
         bytes[4] = self.depth;
         bytes[5..9].copy_from_slice(&self.fingerprint);
         bytes[9..13].copy_from_slice(&self.child_number);
-        bytes[13..46].copy_from_slice(&self.k);
-        bytes[46..78].copy_from_slice(&self.chain_code);
+        bytes[13..45].copy_from_slice(&self.chain_code);
+        bytes[45..78].copy_from_slice(&self.k);
         
         let mut res = [0u8; 78];
         res.copy_from_slice(bytes.as_slice());
