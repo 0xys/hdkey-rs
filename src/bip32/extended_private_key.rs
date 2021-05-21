@@ -4,7 +4,7 @@ use k256::elliptic_curve::ops::Add;
 
 use hmac_sha512::{HMAC};
 use sha2::{Sha256, Digest as Sha256Digest};
-use ripemd160::{Ripemd160, Digest as Ripemd160Digest};
+use ripemd160::{Ripemd160};
 
 use base58::{ToBase58, FromBase58};
 use std::convert::TryInto;
