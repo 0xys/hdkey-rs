@@ -104,7 +104,7 @@ impl ExtendedPrivateKey {
     }
 
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
-    pub fn derive_hardended_child(&self, index: u32) -> Result<ExtendedPrivateKey, String> {
+    pub fn derive_hardended_child(&self, index: u32) -> Result<Self, String> {
         if index >= 2147483648 {
             let message = format!("too large index. {}", index);
             return Err(message);
@@ -132,7 +132,7 @@ impl ExtendedPrivateKey {
     }
 
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
-    pub fn derive_child(&self, index: u32) -> Result<ExtendedPrivateKey, String> {
+    pub fn derive_child(&self, index: u32) -> Result<Self, String> {
         if index >= 2147483648 {
             let message = format!("too large index. {}", index);
             return Err(message);

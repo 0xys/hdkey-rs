@@ -1,4 +1,6 @@
 use hmac_sha512::{HMAC};
+use sha2::{Sha256, Digest as Sha256Digest};
+use ripemd160::{Ripemd160, Digest as Ripemd160Digest};
 use k256::ecdsa::SigningKey;
 use base58::{ToBase58, FromBase58};
 
@@ -91,7 +93,12 @@ impl ExtendedPublicKey {
     }
 
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#public-parent-key--public-child-key
-    pub fn derive_child(&self, index: u32) -> Self {
+    pub fn derive_child(&self, index: u32) -> Result<Self, String> {
+        if index >= 2147483648 {
+            let message = format!("too large index. {}", index);
+            return Err(message);
+        }
+        
         let mut data = vec![0u8;37];
         data[0..33].copy_from_slice(&self.public_key());
         data[33..].copy_from_slice(&transform_u32_to_u8a(index));
@@ -99,14 +106,16 @@ impl ExtendedPublicKey {
         let i = HMAC::mac(data, self.chain_code);
         let (k, c) = self.transform_i_to_k_and_c(&i);
 
-        ExtendedPublicKey {
+        let child = ExtendedPublicKey {
             version: self.version,
             depth: self.depth + 1,
-            fingerprint: [0x00,0x00,0x00,0x00],
+            fingerprint: self.calc_fingerprint(),
             child_number: transform_u32_to_u8a(index),
             k: k,
             chain_code: c
-        }
+        };
+
+        Ok(child)
     }
 
     fn add_pubkeys_bytes(&self, pk1: &[u8; 33], pk2: &[u8; 33]) -> [u8; 33] {
@@ -130,6 +139,24 @@ impl ExtendedPublicKey {
         let sum = self.add_pubkeys_bytes(&self.k, &sk.verify_key().to_bytes());
         
         (sum, i_right)
+    }
+
+    /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#key-identifiers
+    fn calc_fingerprint(&self) -> [u8; 4] {
+        let mut hasher = Sha256::new();
+        let pubkey = self.public_key();
+        hasher.update(pubkey);
+        let sha256ed = hasher.finalize();
+
+        let mut hasher = Ripemd160::new();
+        hasher.update(&sha256ed);
+        let rip160ed = hasher.finalize();
+        
+        let x: [u8; 20] = rip160ed.as_slice().try_into().unwrap();
+        
+        let mut fingerprint = [0u8; 4];
+        fingerprint.copy_from_slice(&x[0..4]);
+        fingerprint
     }
 }
 
