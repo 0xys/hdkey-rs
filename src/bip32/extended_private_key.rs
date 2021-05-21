@@ -9,6 +9,7 @@ use ripemd160::{Ripemd160, Digest as Ripemd160Digest};
 use base58::{ToBase58, FromBase58};
 use std::convert::TryInto;
 use generic_array::GenericArray;
+use hex::FromHex;
 
 use crate::bip32::extended_public_key::{ExtendedPublicKey};
 use crate::bip32::helpers::{split_i, transform_u32_to_u8a};
@@ -64,7 +65,12 @@ impl ExtendedPrivateKey {
         Ok(master_key)
     }
 
-    pub fn to_base58(&self) -> String {
+    pub fn from_seed_hex(seed_hex_str: &str) -> Result<Self, String> {
+        let seed = Vec::from_hex(seed_hex_str).expect("not hex string");
+        Self::from_seed(seed.as_slice())
+    }
+
+    pub fn to_raw_bytes(&self) -> [u8; 78] {
         let mut bytes = vec![0u8; 78];
         bytes[0..4].copy_from_slice(&self.version);
         bytes[4] = self.depth;
@@ -72,7 +78,27 @@ impl ExtendedPrivateKey {
         bytes[9..13].copy_from_slice(&self.child_number);
         bytes[13..46].copy_from_slice(&self.k);
         bytes[46..78].copy_from_slice(&self.chain_code);
-        bytes.to_base58()
+        
+        let mut res = [0u8; 78];
+        res.copy_from_slice(bytes.as_slice());
+        res
+    }
+
+    pub fn to_base58(&self) -> String {
+        let mut hasher = Sha256::new();
+        let bytes = self.to_raw_bytes();
+        hasher.update(&bytes);
+        let hashed = hasher.finalize();
+
+        let mut hasher = Sha256::new();
+        hasher.update(hashed);
+        let checksum = hasher.finalize();
+
+        let mut full_bytes = [0u8; 82];
+        full_bytes[0..78].copy_from_slice(&self.to_raw_bytes());
+        full_bytes[78..].copy_from_slice(&checksum[0..4]);
+
+        full_bytes.to_base58()
     }
 
     pub fn from_base58(base58_str: &str) -> ExtendedPrivateKey {
