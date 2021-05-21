@@ -4,7 +4,6 @@ mod keys;
 #[cfg(test)]
 mod tests {
     use crate::bip32::extended_private_key::ExtendedPrivateKey;
-    use crate::bip32::extended_public_key::ExtendedPublicKey;
 
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#test-vector-1
     #[test]
