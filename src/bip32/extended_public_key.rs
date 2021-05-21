@@ -42,15 +42,35 @@ impl ExtendedPublicKey {
         &self.chain_code
     }
 
-    pub fn to_base58(&self) -> String {
+    pub fn to_raw_bytes(&self) -> [u8; 78] {
         let mut bytes = vec![0u8; 78];
         bytes[0..4].copy_from_slice(&self.version);
         bytes[4] = self.depth;
         bytes[5..9].copy_from_slice(&self.fingerprint);
         bytes[9..13].copy_from_slice(&self.child_number);
-        bytes[13..45].copy_from_slice(&self.k);
-        bytes[45..78].copy_from_slice(&self.chain_code);
-        bytes.to_base58()
+        bytes[13..45].copy_from_slice(&self.chain_code);
+        bytes[45..78].copy_from_slice(&self.k);
+
+        let mut res = [0u8; 78];
+        res.copy_from_slice(bytes.as_slice());
+        res
+    }
+
+    pub fn to_base58(&self) -> String {
+        let mut hasher = Sha256::new();
+        let bytes = self.to_raw_bytes();
+        hasher.update(&bytes);
+        let hashed = hasher.finalize();
+
+        let mut hasher = Sha256::new();
+        hasher.update(hashed);
+        let checksum = hasher.finalize();
+
+        let mut full_bytes = [0u8; 82];
+        full_bytes[0..78].copy_from_slice(&self.to_raw_bytes());
+        full_bytes[78..].copy_from_slice(&checksum[0..4]);
+
+        full_bytes.to_base58()
     }
 
     pub fn from_base58(base58_str: &str) -> Self {
@@ -83,7 +103,7 @@ impl ExtendedPublicKey {
 
     pub fn from_x_priv(ext_priv_key: &ExtendedPrivateKey) -> Self {
         ExtendedPublicKey {
-            version: ext_priv_key.version()[..].try_into().unwrap(),
+            version: [0x04, 0x88, 0xb2, 0x1e],
             depth: *ext_priv_key.depth(),
             fingerprint: ext_priv_key.fingerprint()[..].try_into().unwrap(),
             child_number: ext_priv_key.child_number()[..].try_into().unwrap(),
