@@ -16,6 +16,7 @@ use crate::bip32::helpers::{split_i, transform_u32_to_u8a};
 use crate::keys::{PublicKey, PrivateKey};
 
 
+#[derive(Debug, Clone)]
 pub struct ExtendedPrivateKey {
     version: [u8;4],
     depth: u8,

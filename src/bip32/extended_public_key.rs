@@ -17,7 +17,7 @@ use crate::bip32::helpers::{split_i, transform_u32_to_u8a};
 
 use crate::bip32::helpers::valiidate_path;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExtendedPublicKey {
     version: [u8;4],
     depth: u8,
@@ -147,14 +147,7 @@ impl ExtendedPublicKey {
         };
 
         if path.len() == 0 {
-            let x_pub = ExtendedPublicKey {
-                version: self.version,
-                depth: self.depth + 1,
-                fingerprint: self.calc_fingerprint(),
-                child_number: self.child_number,
-                k: self.k,
-                chain_code: self.chain_code
-            };
+            let x_pub = self.clone();
             return Ok(x_pub)
         }
 
