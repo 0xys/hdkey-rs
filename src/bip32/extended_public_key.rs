@@ -15,7 +15,9 @@ use crate::keys::{PublicKey};
 use crate::bip32::extended_private_key::ExtendedPrivateKey;
 use crate::bip32::helpers::{split_i, transform_u32_to_u8a};
 
+use crate::bip32::helpers::valiidate_path;
 
+#[derive(Debug)]
 pub struct ExtendedPublicKey {
     version: [u8;4],
     depth: u8,
@@ -135,6 +137,35 @@ impl ExtendedPublicKey {
             chain_code: c
         };
 
+        Ok(child)
+    }
+
+    pub fn derive(&self, path: &str) -> Result<Self, String> {
+        let path = match valiidate_path(path, false) {
+            Err(err) => return Err(err),
+            Ok(x) => x
+        };
+
+        if path.len() == 0 {
+            let x_pub = ExtendedPublicKey {
+                version: self.version,
+                depth: self.depth + 1,
+                fingerprint: self.calc_fingerprint(),
+                child_number: self.child_number,
+                k: self.k,
+                chain_code: self.chain_code
+            };
+            return Ok(x_pub)
+        }
+
+        let mut child = self.derive_child(path[0].index).unwrap();
+        for i in 1..path.len() {
+            let node = &path[i];
+            child = match child.derive_child(node.index) {
+                Err(err) => return Err(err),
+                Ok(x) => x
+            };
+        }
         Ok(child)
     }
 
