@@ -14,7 +14,7 @@ use hex::FromHex;
 use crate::bip32::extended_public_key::{ExtendedPublicKey};
 use crate::bip32::helpers::{split_i, transform_u32_to_u8a};
 use crate::keys::{PublicKey, PrivateKey};
-use crate::bip32::helpers::valiidate_path;
+use crate::bip32::helpers::{Node, valiidate_path};
 
 
 #[derive(Debug, Clone)]
@@ -185,40 +185,28 @@ impl ExtendedPrivateKey {
     }
 
     pub fn derive(&self, path: &str) -> Result<Self, String> {
-        let path = match valiidate_path(path, true) {
+        let nodes = match valiidate_path(path, true) {
             Err(err) => return Err(err),
             Ok(x) => x
         };
 
-        if path.len() == 0 {
-            let x_priv = self.clone();
-            return Ok(x_priv)
-        }
-
-        let node = &path[0];
-        let mut child = match node.hardened {
-            false => self.derive_child(node.index).unwrap(),
-            true => self.derive_hardended_child(node.index).unwrap()
-        };
-        for i in 1..path.len() {
-            let node = &path[i];
-            if node.hardened {
-                child = match child.derive_hardended_child(node.index) {
-                    Err(err) => return Err(err),
-                    Ok(x) => x
-                };
-            }else{
-                child = match child.derive_child(node.index) {
-                    Err(err) => return Err(err),
-                    Ok(x) => x
-                };
-            }            
-        }
-        Ok(child)
+        Ok(Self::derive_from(&self, &nodes))
     }
 
     pub fn to_x_pub(&self) -> ExtendedPublicKey {
         ExtendedPublicKey::from_x_priv(self)
+    }
+
+    fn derive_from(current: &Self, nodes: &[Node]) -> Self {
+        if nodes.len() == 0 {
+            return current.clone();
+        }else{
+            let child = match nodes[0].hardened {
+                false => current.derive_child(nodes[0].index).unwrap(),
+                true => current.derive_hardended_child(nodes[0].index).unwrap(),
+            };
+            return Self::derive_from(&child, &nodes[1..]);
+        }
     }
 
     fn transform_i_to_k_and_c(&self, i: &[u8; 64]) -> ([u8; 33], [u8; 32]) {

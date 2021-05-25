@@ -14,7 +14,7 @@ use std::convert::TryInto;
 use crate::keys::{PublicKey};
 use crate::bip32::extended_private_key::ExtendedPrivateKey;
 use crate::bip32::helpers::{split_i, transform_u32_to_u8a};
-use crate::bip32::helpers::valiidate_path;
+use crate::bip32::helpers::{Node, valiidate_path};
 
 #[derive(Debug, Clone)]
 pub struct ExtendedPublicKey {
@@ -140,25 +140,21 @@ impl ExtendedPublicKey {
     }
 
     pub fn derive(&self, path: &str) -> Result<Self, String> {
-        let path = match valiidate_path(path, false) {
+        let nodes = match valiidate_path(path, false) {
             Err(err) => return Err(err),
             Ok(x) => x
         };
 
-        if path.len() == 0 {
-            let x_pub = self.clone();
-            return Ok(x_pub)
-        }
+        Ok(Self::derive_from(&self, &nodes))
+    }
 
-        let mut child = self.derive_child(path[0].index).unwrap();
-        for i in 1..path.len() {
-            let node = &path[i];
-            child = match child.derive_child(node.index) {
-                Err(err) => return Err(err),
-                Ok(x) => x
-            };
+    fn derive_from(current: &Self, nodes: &[Node]) -> Self {
+        if nodes.len() == 0 {
+            return current.clone();
+        }else{
+            let next = current.derive_child(nodes[0].index).unwrap();
+            return Self::derive_from(&next, &nodes[1..]);
         }
-        Ok(child)
     }
 
     fn add_pubkeys_bytes(&self, pk1: &[u8; 33], pk2: &[u8; 33]) -> [u8; 33] {
