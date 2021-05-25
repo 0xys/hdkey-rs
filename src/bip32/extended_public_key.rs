@@ -14,7 +14,6 @@ use std::convert::TryInto;
 use crate::keys::{PublicKey};
 use crate::bip32::extended_private_key::ExtendedPrivateKey;
 use crate::bip32::helpers::{split_i, transform_u32_to_u8a};
-
 use crate::bip32::helpers::valiidate_path;
 
 #[derive(Debug, Clone)]

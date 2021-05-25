@@ -14,6 +14,7 @@ use hex::FromHex;
 use crate::bip32::extended_public_key::{ExtendedPublicKey};
 use crate::bip32::helpers::{split_i, transform_u32_to_u8a};
 use crate::keys::{PublicKey, PrivateKey};
+use crate::bip32::helpers::valiidate_path;
 
 
 #[derive(Debug, Clone)]
@@ -181,6 +182,39 @@ impl ExtendedPrivateKey {
             chain_code: c
         };
         Ok(key)
+    }
+
+    pub fn derive(&self, path: &str) -> Result<Self, String> {
+        let path = match valiidate_path(path, true) {
+            Err(err) => return Err(err),
+            Ok(x) => x
+        };
+
+        if path.len() == 0 {
+            let x_priv = self.clone();
+            return Ok(x_priv)
+        }
+
+        let node = &path[0];
+        let mut child = match node.hardened {
+            false => self.derive_child(node.index).unwrap(),
+            true => self.derive_hardended_child(node.index).unwrap()
+        };
+        for i in 1..path.len() {
+            let node = &path[i];
+            if node.hardened {
+                child = match child.derive_hardended_child(node.index) {
+                    Err(err) => return Err(err),
+                    Ok(x) => x
+                };
+            }else{
+                child = match child.derive_child(node.index) {
+                    Err(err) => return Err(err),
+                    Ok(x) => x
+                };
+            }            
+        }
+        Ok(child)
     }
 
     pub fn to_x_pub(&self) -> ExtendedPublicKey {

@@ -31,6 +31,10 @@ pub fn valiidate_path(path: &str, allow_hardened: bool) -> Result<Vec<Node>, Str
     let path_vec: Vec<&str> = path.collect();
     
     for p in path_vec {
+        if p.eq("m"){
+            continue;
+        }
+
         let hardened = p.ends_with("'");
 
         if hardened && !allow_hardened {
