@@ -8,9 +8,17 @@ pub enum Error {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum PathError {
+
+    /// path index out of bounds.
     IndexOutOfBounds(u32),
+
+    /// path not start with 'm'.
     InvalidHead,
+
+    /// hardened derivation not allowed from xpub.
     HardenedNotAllowed,
+
+    /// unparsable character is included.
     Unparsable,
 }
 
