@@ -49,7 +49,7 @@ impl ExtendedPrivateKey {
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#master-key-generation
     pub fn from_seed(seed: &[u8]) -> Result<Self, Error> {
         if seed.len() < 16 || seed.len() > 64 {
-            return Err(Error::InvalidSeed(SeedError::OutOfBounds));
+            return Err(Error::InvalidSeed(SeedError::OutOfBounds(seed.len())));
         }
         let key = b"Bitcoin seed";
         let i = HMAC::mac(seed, key);

@@ -29,7 +29,7 @@ pub enum SeedError {
     NotHexString,
 
     /// seed length must be in the range [16, 64] in bytes.
-    OutOfBounds,
+    OutOfBounds(usize),
 }
 
 impl From<FromHexError> for Error {
