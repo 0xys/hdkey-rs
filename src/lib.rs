@@ -1,5 +1,6 @@
 mod bip32;
 mod keys;
+mod error;
 
 #[cfg(test)]
 mod tests {

@@ -15,6 +15,7 @@ use crate::keys::{PublicKey};
 use crate::bip32::extended_private_key::ExtendedPrivateKey;
 use crate::bip32::helpers::{split_i, transform_u32_to_u8a};
 use crate::bip32::helpers::{Node, valiidate_path};
+use crate::error::{Error, PathError, SeedError};
 
 #[derive(Debug, Clone)]
 pub struct ExtendedPublicKey {
@@ -114,10 +115,9 @@ impl ExtendedPublicKey {
     }
 
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#public-parent-key--public-child-key
-    pub fn derive_child(&self, index: u32) -> Result<Self, String> {
+    pub fn derive_child(&self, index: u32) -> Result<Self, Error> {
         if index >= 2147483648 {
-            let message = format!("too large index. {}", index);
-            return Err(message);
+            return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
         
         let mut data = vec![0u8;37];
@@ -139,20 +139,20 @@ impl ExtendedPublicKey {
         Ok(child)
     }
 
-    pub fn derive(&self, path: &str) -> Result<Self, String> {
+    pub fn derive(&self, path: &str) -> Result<Self, Error> {
         let nodes = match valiidate_path(path, false) {
             Err(err) => return Err(err),
             Ok(x) => x
         };
 
-        Ok(Self::derive_from(&self, &nodes))
+        Self::derive_from(&self, &nodes)
     }
 
-    fn derive_from(current: &Self, nodes: &[Node]) -> Self {
+    fn derive_from(current: &Self, nodes: &[Node]) -> Result<Self, Error> {
         if nodes.len() == 0 {
-            return current.clone();
+            return Ok(current.clone());
         }else{
-            let next = current.derive_child(nodes[0].index).unwrap();
+            let next = current.derive_child(nodes[0].index)?;
             return Self::derive_from(&next, &nodes[1..]);
         }
     }

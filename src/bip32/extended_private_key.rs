@@ -15,6 +15,7 @@ use crate::bip32::extended_public_key::{ExtendedPublicKey};
 use crate::bip32::helpers::{split_i, transform_u32_to_u8a};
 use crate::keys::{PublicKey, PrivateKey};
 use crate::bip32::helpers::{Node, valiidate_path};
+use crate::error::{Error, PathError, SeedError};
 
 
 #[derive(Debug, Clone)]
@@ -46,10 +47,9 @@ impl ExtendedPrivateKey {
 
     /// generate master private key from seed.
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#master-key-generation
-    pub fn from_seed(seed: &[u8]) -> Result<Self, String> {
+    pub fn from_seed(seed: &[u8]) -> Result<Self, Error> {
         if seed.len() < 16 || seed.len() > 64 {
-            let message = format!("seed length must be in the range [16, 64]");
-            return Err(message);
+            return Err(Error::InvalidSeed(SeedError::OutOfBounds));
         }
         let key = b"Bitcoin seed";
         let i = HMAC::mac(seed, key);
@@ -67,8 +67,8 @@ impl ExtendedPrivateKey {
         Ok(master_key)
     }
 
-    pub fn from_seed_hex(seed_hex_str: &str) -> Result<Self, String> {
-        let seed = Vec::from_hex(seed_hex_str).expect("not hex string");
+    pub fn from_seed_hex(seed_hex_str: &str) -> Result<Self, Error> {
+        let seed = Vec::from_hex(seed_hex_str)?;
         Self::from_seed(seed.as_slice())
     }
 
@@ -132,10 +132,9 @@ impl ExtendedPrivateKey {
     }
 
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
-    pub fn derive_hardended_child(&self, index: u32) -> Result<Self, String> {
+    pub fn derive_hardended_child(&self, index: u32) -> Result<Self, Error> {
         if index >= 2147483648 {
-            let message = format!("too large index. {}", index);
-            return Err(message);
+            return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
 
         // for hardened index.
@@ -160,10 +159,9 @@ impl ExtendedPrivateKey {
     }
 
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
-    pub fn derive_child(&self, index: u32) -> Result<Self, String> {
+    pub fn derive_child(&self, index: u32) -> Result<Self, Error> {
         if index >= 2147483648 {
-            let message = format!("too large index. {}", index);
-            return Err(message);
+            return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
         
         let mut data = vec![0u8;37];
@@ -184,26 +182,26 @@ impl ExtendedPrivateKey {
         Ok(key)
     }
 
-    pub fn derive(&self, path: &str) -> Result<Self, String> {
+    pub fn derive(&self, path: &str) -> Result<Self, Error> {
         let nodes = match valiidate_path(path, true) {
             Err(err) => return Err(err),
             Ok(x) => x
         };
 
-        Ok(Self::derive_from(&self, &nodes))
+        Self::derive_from(&self, &nodes)
     }
 
     pub fn to_x_pub(&self) -> ExtendedPublicKey {
         ExtendedPublicKey::from_x_priv(self)
     }
 
-    fn derive_from(current: &Self, nodes: &[Node]) -> Self {
+    fn derive_from(current: &Self, nodes: &[Node]) -> Result<Self, Error> {
         if nodes.len() == 0 {
-            return current.clone();
+            return Ok(current.clone());
         }else{
             let child = match nodes[0].hardened {
-                false => current.derive_child(nodes[0].index).unwrap(),
-                true => current.derive_hardended_child(nodes[0].index).unwrap(),
+                false => current.derive_child(nodes[0].index)?,
+                true => current.derive_hardended_child(nodes[0].index)?,
             };
             return Self::derive_from(&child, &nodes[1..]);
         }

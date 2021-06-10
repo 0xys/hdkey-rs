@@ -1,3 +1,4 @@
+use crate::error::{Error, PathError, SeedError};
 
 pub fn split_i(i: &[u8; 64]) -> ([u8; 32], [u8; 32]) {
     let mut i_right = [0u8; 32];
@@ -22,9 +23,9 @@ pub struct Node {
     pub hardened: bool
 }
 
-pub fn valiidate_path(path: &str, allow_hardened: bool) -> Result<Vec<Node>, String> {
+pub fn valiidate_path(path: &str, allow_hardened: bool) -> Result<Vec<Node>, Error> {
     if !path.starts_with("m/"){
-        return Err(String::from("path must start with 'm/'"));
+        return Err(Error::InvalidPath(PathError::InvalidHead));
     }
     let mut vec = vec![];
     let path = path.split("/");
@@ -38,7 +39,7 @@ pub fn valiidate_path(path: &str, allow_hardened: bool) -> Result<Vec<Node>, Str
         let hardened = p.ends_with("'");
 
         if hardened && !allow_hardened {
-            return Err(String::from("Hardened derivation is only allowed from x_priv"));
+            return Err(Error::InvalidPath(PathError::HardenedNotAllowed));
         }
 
         let num_str = match hardened {
@@ -52,7 +53,7 @@ pub fn valiidate_path(path: &str, allow_hardened: bool) -> Result<Vec<Node>, Str
         let index = match parsed {
             Ok(x) => x,
             Err(_) => {
-                return Err(String::from("path includes unparsable string"))
+                return Err(Error::InvalidPath(PathError::Unparsable));
             }
         };
 
