@@ -18,13 +18,13 @@ use crate::bip32::extended_public_key::{ExtendedPublicKey};
 use crate::bip32::helpers::{split_i, transform_u32_to_u8a};
 use crate::bip32::helpers::{Node, valiidate_path};
 use crate::bip32::version::{Version, KeyType};
-
+use crate::bip32::fingerprint::{Fingerprint};
 
 #[derive(Debug, Clone)]
 pub struct ExtendedPrivateKey {
     version: Version,
     depth: u8,
-    fingerprint: [u8;4],
+    fingerprint: Fingerprint,
     child_number: [u8;4],
     chain_code: [u8;32],
     k: [u8;33],
@@ -37,7 +37,7 @@ impl ExtendedPrivateKey {
     pub fn depth(&self) -> &u8 {
         &self.depth
     }
-    pub fn fingerprint(&self) -> &[u8;4] {
+    pub fn fingerprint(&self) -> &Fingerprint {
         &self.fingerprint
     }
     pub fn child_number(&self) -> &[u8;4] {
@@ -60,7 +60,7 @@ impl ExtendedPrivateKey {
         let master_key = ExtendedPrivateKey {
             version: Version::MainNet(KeyType::Private),
             depth: 0x00,
-            fingerprint: [0x00, 0x00, 0x00, 0x00],
+            fingerprint: Fingerprint([0x00, 0x00, 0x00, 0x00]),
             child_number: [0x00, 0x00, 0x00, 0x00],
             k: k,
             chain_code: c
@@ -78,7 +78,7 @@ impl ExtendedPrivateKey {
         let mut bytes = vec![0u8; 78];
         bytes[0..4].copy_from_slice(&self.version.serialize());
         bytes[4] = self.depth;
-        bytes[5..9].copy_from_slice(&self.fingerprint);
+        bytes[5..9].copy_from_slice(&self.fingerprint.0);
         bytes[9..13].copy_from_slice(&self.child_number);
         bytes[13..45].copy_from_slice(&self.chain_code);
         bytes[45..78].copy_from_slice(&self.k);
@@ -126,7 +126,7 @@ impl ExtendedPrivateKey {
         ExtendedPrivateKey {
             version: Version::deserialize(&version).unwrap(),
             depth: bytes[4],
-            fingerprint: fingerprint,
+            fingerprint: Fingerprint(fingerprint),
             child_number: child_number,
             k: k,
             chain_code: c
@@ -152,7 +152,7 @@ impl ExtendedPrivateKey {
         let key = ExtendedPrivateKey {
             version: self.version,
             depth: self.depth + 1,
-            fingerprint: self.calc_fingerprint(),
+            fingerprint: Fingerprint::from_xpiv(&self),
             child_number: transform_u32_to_u8a(index),
             k: k,
             chain_code: c
@@ -176,7 +176,7 @@ impl ExtendedPrivateKey {
         let key = ExtendedPrivateKey {
             version: self.version,
             depth: self.depth + 1,
-            fingerprint: self.calc_fingerprint(),
+            fingerprint: Fingerprint::from_xpiv(&self),
             child_number: transform_u32_to_u8a(index),
             k: k,
             chain_code: c
@@ -220,24 +220,6 @@ impl ExtendedPrivateKey {
         k.copy_from_slice(k_vec.as_slice());
 
         (k, i_right)
-    }
-
-    /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#key-identifiers
-    fn calc_fingerprint(&self) -> [u8; 4] {
-        let mut hasher = Sha256::new();
-        let pubkey = self.public_key();
-        hasher.update(pubkey);
-        let sha256ed = hasher.finalize();
-
-        let mut hasher = Ripemd160::new();
-        hasher.update(&sha256ed);
-        let rip160ed = hasher.finalize();
-        
-        let x: [u8; 20] = rip160ed.as_slice().try_into().unwrap();
-        
-        let mut fingerprint = [0u8; 4];
-        fingerprint.copy_from_slice(&x[0..4]);
-        fingerprint
     }
 }
 
