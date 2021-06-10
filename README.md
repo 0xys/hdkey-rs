@@ -21,4 +21,11 @@ let bs58 = xpub.to_base58();
 let bs58 = bs58.as_str();
 assert_eq!("xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4trkrX7x7DogT5Uv6fcLW5", bs58);
 
+//  use keys::PublicKey
+let pubkey = xpub.public_key();     //  [u8; 33]
+let pubkey = xpriv.public_key();    //  [u8; 33]
+
+//  use keys::PrivateKey
+let privkey = xpriv.private_key();  //  [u8; 32]
+
 ```
