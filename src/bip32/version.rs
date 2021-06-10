@@ -1,6 +1,8 @@
 use crate::bip32::serialize::{Serialize, Deserialize};
 use crate::error::Error;
 
+/// version of extended key
+/// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Version {
     MainNet(KeyType),

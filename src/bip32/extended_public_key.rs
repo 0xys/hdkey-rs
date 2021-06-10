@@ -1,6 +1,5 @@
 use hmac_sha512::{HMAC};
 use sha2::{Sha256, Digest as Sha256Digest};
-use ripemd160::{Ripemd160, Digest as Ripemd160Digest};
 use k256::ecdsa::SigningKey;
 use base58::{ToBase58, FromBase58};
 
@@ -12,7 +11,7 @@ use core::ops::Add;
 use std::convert::TryInto;
 
 use crate::keys::{PublicKey};
-use crate::error::{Error, PathError, SeedError};
+use crate::error::{Error, PathError};
 use crate::bip32::serialize::{Serialize, Deserialize};
 use crate::bip32::extended_private_key::ExtendedPrivateKey;
 use crate::bip32::helpers::{split_i, transform_u32_to_u8a};

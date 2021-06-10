@@ -6,12 +6,11 @@ use crate::keys::{PublicKey};
 use crate::bip32::extended_private_key::ExtendedPrivateKey;
 use crate::bip32::extended_public_key::ExtendedPublicKey;
 
-
+/// fingerprint of public key
+/// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#key-identifiers
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Fingerprint(pub [u8; 4]);
 
-/// fingerprint of public key
-/// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#key-identifiers
 impl Fingerprint {
 
     /// calculate fingerprint from ExtendedPublicKey
