@@ -1,5 +1,7 @@
 pub mod extended_public_key;
 pub mod extended_private_key;
+pub mod serialize;
+pub mod version;
 
 pub mod helpers;
 

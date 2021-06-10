@@ -11,16 +11,18 @@ use std::convert::TryInto;
 use generic_array::GenericArray;
 use hex::FromHex;
 
+use crate::keys::{PublicKey, PrivateKey};
+use crate::error::{Error, PathError, SeedError};
+use crate::bip32::serialize::{Serialize, Deserialize};
 use crate::bip32::extended_public_key::{ExtendedPublicKey};
 use crate::bip32::helpers::{split_i, transform_u32_to_u8a};
-use crate::keys::{PublicKey, PrivateKey};
 use crate::bip32::helpers::{Node, valiidate_path};
-use crate::error::{Error, PathError, SeedError};
+use crate::bip32::version::{Version, KeyType};
 
 
 #[derive(Debug, Clone)]
 pub struct ExtendedPrivateKey {
-    version: [u8;4],
+    version: Version,
     depth: u8,
     fingerprint: [u8;4],
     child_number: [u8;4],
@@ -29,7 +31,7 @@ pub struct ExtendedPrivateKey {
 }
 
 impl ExtendedPrivateKey {
-    pub fn version(&self) -> &[u8;4] {
+    pub fn version(&self) -> &Version {
         &self.version
     }
     pub fn depth(&self) -> &u8 {
@@ -56,7 +58,7 @@ impl ExtendedPrivateKey {
         let (k, c) = transform_master_i_to_k_and_c(&i);
 
         let master_key = ExtendedPrivateKey {
-            version: [0x04, 0x88, 0xad, 0xe4],
+            version: Version::MainNet(KeyType::Private),
             depth: 0x00,
             fingerprint: [0x00, 0x00, 0x00, 0x00],
             child_number: [0x00, 0x00, 0x00, 0x00],
@@ -74,7 +76,7 @@ impl ExtendedPrivateKey {
 
     pub fn to_raw_bytes(&self) -> [u8; 78] {
         let mut bytes = vec![0u8; 78];
-        bytes[0..4].copy_from_slice(&self.version);
+        bytes[0..4].copy_from_slice(&self.version.serialize());
         bytes[4] = self.depth;
         bytes[5..9].copy_from_slice(&self.fingerprint);
         bytes[9..13].copy_from_slice(&self.child_number);
@@ -122,7 +124,7 @@ impl ExtendedPrivateKey {
         c.copy_from_slice(&bytes[46..78]);
 
         ExtendedPrivateKey {
-            version: version,
+            version: Version::deserialize(&version).unwrap(),
             depth: bytes[4],
             fingerprint: fingerprint,
             child_number: child_number,

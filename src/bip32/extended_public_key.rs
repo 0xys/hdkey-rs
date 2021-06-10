@@ -12,14 +12,16 @@ use core::ops::Add;
 use std::convert::TryInto;
 
 use crate::keys::{PublicKey};
+use crate::error::{Error, PathError, SeedError};
+use crate::bip32::serialize::{Serialize, Deserialize};
 use crate::bip32::extended_private_key::ExtendedPrivateKey;
 use crate::bip32::helpers::{split_i, transform_u32_to_u8a};
 use crate::bip32::helpers::{Node, valiidate_path};
-use crate::error::{Error, PathError, SeedError};
+use crate::bip32::version::{Version};
 
 #[derive(Debug, Clone)]
 pub struct ExtendedPublicKey {
-    version: [u8;4],
+    version: Version,
     depth: u8,
     fingerprint: [u8;4],
     child_number: [u8;4],
@@ -28,7 +30,7 @@ pub struct ExtendedPublicKey {
 }
 
 impl ExtendedPublicKey {
-    pub fn version(&self) -> &[u8;4] {
+    pub fn version(&self) -> &Version {
         &self.version
     }
     pub fn depth(&self) -> &u8 {
@@ -46,7 +48,7 @@ impl ExtendedPublicKey {
 
     pub fn to_raw_bytes(&self) -> [u8; 78] {
         let mut bytes = vec![0u8; 78];
-        bytes[0..4].copy_from_slice(&self.version);
+        bytes[0..4].copy_from_slice(&self.version.serialize());
         bytes[4] = self.depth;
         bytes[5..9].copy_from_slice(&self.fingerprint);
         bytes[9..13].copy_from_slice(&self.child_number);
@@ -94,7 +96,7 @@ impl ExtendedPublicKey {
         c.copy_from_slice(&bytes[46..78]);
 
         ExtendedPublicKey {
-            version: version,
+            version: Version::deserialize(&version).unwrap(),
             depth: bytes[4],
             fingerprint: fingerprint,
             child_number: child_number,
@@ -105,7 +107,7 @@ impl ExtendedPublicKey {
 
     pub fn from_x_priv(ext_priv_key: &ExtendedPrivateKey) -> Self {
         ExtendedPublicKey {
-            version: [0x04, 0x88, 0xb2, 0x1e],
+            version: ext_priv_key.version().to_pub(),
             depth: *ext_priv_key.depth(),
             fingerprint: ext_priv_key.fingerprint()[..].try_into().unwrap(),
             child_number: ext_priv_key.child_number()[..].try_into().unwrap(),

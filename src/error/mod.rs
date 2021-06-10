@@ -4,6 +4,8 @@ use hex::FromHexError;
 pub enum Error {
     InvalidSeed(SeedError),
     InvalidPath(PathError),
+    SerializeError,
+    DeseializeError,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
