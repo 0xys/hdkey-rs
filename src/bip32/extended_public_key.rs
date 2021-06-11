@@ -14,17 +14,18 @@ use crate::keys::{PublicKey};
 use crate::error::{Error, PathError};
 use crate::bip32::serialize::{Serialize, Deserialize};
 use crate::bip32::extended_private_key::ExtendedPrivateKey;
-use crate::bip32::helpers::{split_i, transform_u32_to_u8a};
+use crate::bip32::helpers::{split_i};
 use crate::bip32::helpers::{Node, valiidate_path};
 use crate::bip32::version::{Version};
 use crate::bip32::fingerprint::{Fingerprint};
+use crate::bip32::child_number::{ChildNumber};
 
 #[derive(Debug, Clone)]
 pub struct ExtendedPublicKey {
     version: Version,
     depth: u8,
     fingerprint: Fingerprint,
-    child_number: [u8;4],
+    child_number: ChildNumber,
     chain_code: [u8;32],
     k: [u8;33],
 }
@@ -39,7 +40,7 @@ impl ExtendedPublicKey {
     pub fn fingerprint(&self) -> &Fingerprint {
         &self.fingerprint
     }
-    pub fn child_number(&self) -> &[u8;4] {
+    pub fn child_number(&self) -> &ChildNumber {
         &self.child_number
     }
     pub fn chain_code(&self) -> &[u8;32] {
@@ -51,7 +52,7 @@ impl ExtendedPublicKey {
         bytes[0..4].copy_from_slice(&self.version.serialize());
         bytes[4] = self.depth;
         bytes[5..9].copy_from_slice(&self.fingerprint.0);
-        bytes[9..13].copy_from_slice(&self.child_number);
+        bytes[9..13].copy_from_slice(&self.child_number.0);
         bytes[13..45].copy_from_slice(&self.chain_code);
         bytes[45..78].copy_from_slice(&self.k);
 
@@ -99,7 +100,7 @@ impl ExtendedPublicKey {
             version: Version::deserialize(&version).unwrap(),
             depth: bytes[4],
             fingerprint: Fingerprint(fingerprint),
-            child_number: child_number,
+            child_number: ChildNumber(child_number),
             k: k,
             chain_code: c
         }
@@ -110,7 +111,7 @@ impl ExtendedPublicKey {
             version: ext_priv_key.version().to_pub(),
             depth: *ext_priv_key.depth(),
             fingerprint: *ext_priv_key.fingerprint(),
-            child_number: ext_priv_key.child_number()[..].try_into().unwrap(),
+            child_number: *ext_priv_key.child_number(),
             k: ext_priv_key.public_key(),
             chain_code: ext_priv_key.chain_code()[..].try_into().unwrap()
         }
@@ -124,7 +125,7 @@ impl ExtendedPublicKey {
         
         let mut data = vec![0u8;37];
         data[0..33].copy_from_slice(&self.public_key());
-        data[33..].copy_from_slice(&transform_u32_to_u8a(index));
+        data[33..].copy_from_slice(&ChildNumber::from_u32(index).0[..]);
 
         let i = HMAC::mac(data, self.chain_code);
         let (k, c) = self.transform_i_to_k_and_c(&i);
@@ -133,7 +134,7 @@ impl ExtendedPublicKey {
             version: self.version,
             depth: self.depth + 1,
             fingerprint: Fingerprint::from_xpub(&self),
-            child_number: transform_u32_to_u8a(index),
+            child_number: ChildNumber::from_u32(index),
             k: k,
             chain_code: c
         };

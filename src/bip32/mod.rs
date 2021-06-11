@@ -3,6 +3,7 @@ pub mod extended_private_key;
 pub mod serialize;
 pub mod version;
 pub mod fingerprint;
+pub mod child_number;
 
 pub mod helpers;
 
