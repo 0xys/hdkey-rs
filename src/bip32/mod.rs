@@ -4,6 +4,7 @@ pub mod serialize;
 pub mod version;
 pub mod fingerprint;
 pub mod child_number;
+pub mod checksum;
 
 pub mod helpers;
 

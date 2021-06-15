@@ -1,5 +1,4 @@
 use hmac_sha512::{HMAC};
-use sha2::{Sha256, Digest as Sha256Digest};
 use k256::ecdsa::SigningKey;
 use base58::{ToBase58, FromBase58};
 
@@ -14,6 +13,7 @@ use crate::keys::{PublicKey};
 use crate::error::{Error, PathError, DeserializationError};
 use crate::bip32::serialize::{Serialize, Deserialize};
 use crate::bip32::extended_private_key::ExtendedPrivateKey;
+use crate::bip32::checksum::{get_checksum, verify_checksum};
 use crate::bip32::helpers::{split_i};
 use crate::bip32::helpers::{Node, valiidate_path};
 use crate::bip32::version::{Version};
@@ -48,18 +48,12 @@ impl ExtendedPublicKey {
     }
 
     pub fn to_base58(&self) -> String {
-        let bytes = ExtendedPublicKey::serialize(&self);
-        let mut hasher = Sha256::new();
-        hasher.update(&bytes);
-        let hashed = hasher.finalize();
-
-        let mut hasher = Sha256::new();
-        hasher.update(hashed);
-        let checksum = hasher.finalize();
+        let bytes = self.serialize();
+        let checksum = get_checksum(&bytes);
 
         let mut full_bytes = [0u8; 82];
         full_bytes[0..78].copy_from_slice(&bytes);
-        full_bytes[78..].copy_from_slice(&checksum[0..4]);
+        full_bytes[78..].copy_from_slice(&checksum);
 
         full_bytes.to_base58()
     }

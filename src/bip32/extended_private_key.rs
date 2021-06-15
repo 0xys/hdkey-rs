@@ -13,6 +13,7 @@ use crate::keys::{PublicKey, PrivateKey};
 use crate::error::{Error, PathError, SeedError, DeserializationError};
 use crate::bip32::serialize::{Serialize, Deserialize};
 use crate::bip32::extended_public_key::{ExtendedPublicKey};
+use crate::bip32::checksum::{get_checksum, verify_checksum};
 use crate::bip32::helpers::{split_i};
 use crate::bip32::helpers::{Node, valiidate_path};
 use crate::bip32::version::{Version, KeyType};
@@ -74,18 +75,12 @@ impl ExtendedPrivateKey {
     }
 
     pub fn to_base58(&self) -> String {
-        let mut hasher = Sha256::new();
         let bytes = self.serialize();
-        hasher.update(&bytes);
-        let hashed = hasher.finalize();
-
-        let mut hasher = Sha256::new();
-        hasher.update(hashed);
-        let checksum = hasher.finalize();
+        let checksum = get_checksum(&bytes);
 
         let mut full_bytes = [0u8; 82];
         full_bytes[0..78].copy_from_slice(&bytes);
-        full_bytes[78..].copy_from_slice(&checksum[0..4]);
+        full_bytes[78..].copy_from_slice(&checksum);
 
         full_bytes.to_base58()
     }
