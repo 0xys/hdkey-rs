@@ -47,20 +47,6 @@ impl ExtendedPublicKey {
         &self.chain_code
     }
 
-    pub fn to_raw_bytes(&self) -> [u8; 78] {
-        let mut bytes = vec![0u8; 78];
-        bytes[0..4].copy_from_slice(&self.version.serialize());
-        bytes[4] = self.depth;
-        bytes[5..9].copy_from_slice(&self.fingerprint.0);
-        bytes[9..13].copy_from_slice(&self.child_number.0);
-        bytes[13..45].copy_from_slice(&self.chain_code);
-        bytes[45..78].copy_from_slice(&self.k);
-
-        let mut res = [0u8; 78];
-        res.copy_from_slice(bytes.as_slice());
-        res
-    }
-
     pub fn to_base58(&self) -> String {
         let bytes = ExtendedPublicKey::serialize(&self);
         let mut hasher = Sha256::new();
