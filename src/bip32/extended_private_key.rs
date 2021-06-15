@@ -116,11 +116,11 @@ impl ExtendedPrivateKey {
         let mut child_number = [0u8; 4];
         child_number.copy_from_slice(&bytes[9..13]);
 
-        let mut k = [0u8; 33];
-        k.copy_from_slice(&bytes[13..46]);
-
         let mut c = [0u8; 32];
-        c.copy_from_slice(&bytes[46..78]);
+        c.copy_from_slice(&bytes[13..45]);
+
+        let mut k = [0u8; 33];
+        k.copy_from_slice(&bytes[45..78]);        
 
         ExtendedPrivateKey {
             version: Version::deserialize(&version).unwrap(),
@@ -259,4 +259,16 @@ pub fn add_scalar_be(a: &[u8; 32], b: &[u8; 32]) -> [u8; 32] {
     let mut ret = [0u8; 32];
     ret.copy_from_slice(&sum);
     ret
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::bip32::extended_private_key::ExtendedPrivateKey;
+
+    #[test]
+    fn test_xpriv_base58() {
+        let bs58 = "xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjANTtpgP4mLTj34bhnZX7UiM";
+        let xpub = ExtendedPrivateKey::from_base58(bs58);
+        assert_eq!(bs58, xpub.to_base58());
+    }
 }
