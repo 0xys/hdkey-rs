@@ -5,7 +5,7 @@ pub enum Error {
     InvalidSeed(SeedError),
     InvalidPath(PathError),
     SerializeError,
-    DeseializeError,
+    DeseializeError(DeserializationError),
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -38,4 +38,10 @@ impl From<FromHexError> for Error {
     fn from(err: FromHexError) -> Self {
         Error::InvalidSeed(SeedError::NotHexString)
     }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum DeserializationError {
+    WrongCheckSum,
+    InvalidSize,
 }

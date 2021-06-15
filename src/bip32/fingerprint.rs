@@ -6,7 +6,7 @@ use crate::keys::{PublicKey};
 use crate::bip32::extended_private_key::ExtendedPrivateKey;
 use crate::bip32::extended_public_key::ExtendedPublicKey;
 use crate::bip32::serialize::{Serialize, Deserialize};
-use crate::error::Error;
+use crate::error::{Error, DeserializationError};
 
 /// fingerprint of public key
 /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#key-identifiers
@@ -62,7 +62,7 @@ impl Serialize<[u8; 4]> for Fingerprint {
 impl Deserialize<&[u8], Error> for Fingerprint {
     fn deserialize(bytes: &[u8]) -> Result<Self, Error> {
         if bytes.len() != 4 {
-            return Err(Error::DeseializeError);
+            return Err(Error::DeseializeError(DeserializationError::InvalidSize));
         }
 
         let bytes: [u8; 4] = bytes[0..4].try_into().unwrap();

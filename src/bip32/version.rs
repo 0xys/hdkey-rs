@@ -1,5 +1,5 @@
 use crate::bip32::serialize::{Serialize, Deserialize};
-use crate::error::Error;
+use crate::error::{Error, DeserializationError};
 
 use std::convert::TryInto;
 
@@ -58,7 +58,7 @@ impl Serialize<[u8; 4]> for Version {
 impl Deserialize<&[u8], Error> for Version {
     fn deserialize(bytes: &[u8]) -> Result<Self, Error> {
         if bytes.len() != 4 {
-            return Err(Error::DeseializeError);
+            return Err(Error::DeseializeError(DeserializationError::InvalidSize));
         }
 
         let bytes: [u8; 4] = bytes[0..4].try_into().unwrap();

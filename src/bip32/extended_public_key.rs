@@ -11,7 +11,7 @@ use core::ops::Add;
 use std::convert::TryInto;
 
 use crate::keys::{PublicKey};
-use crate::error::{Error, PathError};
+use crate::error::{Error, PathError, DeserializationError};
 use crate::bip32::serialize::{Serialize, Deserialize};
 use crate::bip32::extended_private_key::ExtendedPrivateKey;
 use crate::bip32::helpers::{split_i};
@@ -169,7 +169,7 @@ impl Serialize<[u8; 78]> for ExtendedPublicKey {
 impl Deserialize<&[u8], Error> for ExtendedPublicKey {
     fn deserialize(bytes: &[u8]) -> Result<Self, Error> {
         if bytes.len() != 82 {
-            return Err(Error::DeseializeError);
+            return Err(Error::DeseializeError(DeserializationError::InvalidSize));
         }
         let mut c = [0u8; 32];
         c.copy_from_slice(&bytes[13..45]);

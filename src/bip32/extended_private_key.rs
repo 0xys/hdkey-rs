@@ -10,7 +10,7 @@ use generic_array::GenericArray;
 use hex::FromHex;
 
 use crate::keys::{PublicKey, PrivateKey};
-use crate::error::{Error, PathError, SeedError};
+use crate::error::{Error, PathError, SeedError, DeserializationError};
 use crate::bip32::serialize::{Serialize, Deserialize};
 use crate::bip32::extended_public_key::{ExtendedPublicKey};
 use crate::bip32::helpers::{split_i};
@@ -240,7 +240,7 @@ impl Serialize<[u8; 78]> for ExtendedPrivateKey {
 impl Deserialize<&[u8], Error> for ExtendedPrivateKey {
     fn deserialize(bytes: &[u8]) -> Result<Self, Error> {
         if bytes.len() != 82 {
-            return Err(Error::DeseializeError);
+            return Err(Error::DeseializeError(DeserializationError::InvalidSize));
         }
         let mut c = [0u8; 32];
         c.copy_from_slice(&bytes[13..45]);
