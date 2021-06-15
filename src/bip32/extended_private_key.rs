@@ -237,6 +237,10 @@ impl Deserialize<&[u8], Error> for ExtendedPrivateKey {
         if bytes.len() != 82 {
             return Err(Error::DeseializeError(DeserializationError::InvalidSize));
         }
+        if !verify_checksum(&bytes) {
+            return Err(Error::DeseializeError(DeserializationError::WrongCheckSum));
+        }
+
         let mut c = [0u8; 32];
         c.copy_from_slice(&bytes[13..45]);
 

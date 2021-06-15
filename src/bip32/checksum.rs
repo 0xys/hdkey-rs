@@ -15,7 +15,7 @@ pub fn get_checksum(payload: &[u8]) -> [u8; 4] {
     checksum
 }
 
-pub fn verify_checksum(packet: &[u8; 82]) -> bool {
-    let checksum = get_checksum(&packet[0..78]);
-    checksum == packet[78..]
+pub fn verify_checksum(packet: &[u8]) -> bool {
+    let checksum = get_checksum(&packet[0..(packet.len()-4)]);
+    checksum == packet[(packet.len()-4)..packet.len()]
 }
