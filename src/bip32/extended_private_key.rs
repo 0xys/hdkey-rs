@@ -73,23 +73,9 @@ impl ExtendedPrivateKey {
         Self::from_seed(seed.as_slice())
     }
 
-    pub fn to_raw_bytes(&self) -> [u8; 78] {
-        let mut bytes = vec![0u8; 78];
-        bytes[0..4].copy_from_slice(&self.version.serialize());
-        bytes[4] = self.depth;
-        bytes[5..9].copy_from_slice(&self.fingerprint.0);
-        bytes[9..13].copy_from_slice(&self.child_number.0);
-        bytes[13..45].copy_from_slice(&self.chain_code);
-        bytes[45..78].copy_from_slice(&self.k);
-        
-        let mut res = [0u8; 78];
-        res.copy_from_slice(bytes.as_slice());
-        res
-    }
-
     pub fn to_base58(&self) -> String {
         let mut hasher = Sha256::new();
-        let bytes = self.to_raw_bytes();
+        let bytes = self.serialize();
         hasher.update(&bytes);
         let hashed = hasher.finalize();
 
@@ -98,7 +84,7 @@ impl ExtendedPrivateKey {
         let checksum = hasher.finalize();
 
         let mut full_bytes = [0u8; 82];
-        full_bytes[0..78].copy_from_slice(&self.to_raw_bytes());
+        full_bytes[0..78].copy_from_slice(&bytes);
         full_bytes[78..].copy_from_slice(&checksum[0..4]);
 
         full_bytes.to_base58()
@@ -106,30 +92,7 @@ impl ExtendedPrivateKey {
 
     pub fn from_base58(base58_str: &str) -> ExtendedPrivateKey {
         let bytes = base58_str.from_base58().unwrap();
-
-        let mut version = [0u8; 4];
-        version.copy_from_slice(&bytes[0..4]);
-
-        let mut fingerprint = [0u8; 4];
-        fingerprint.copy_from_slice(&bytes[5..9]);
-
-        let mut child_number = [0u8; 4];
-        child_number.copy_from_slice(&bytes[9..13]);
-
-        let mut c = [0u8; 32];
-        c.copy_from_slice(&bytes[13..45]);
-
-        let mut k = [0u8; 33];
-        k.copy_from_slice(&bytes[45..78]);        
-
-        ExtendedPrivateKey {
-            version: Version::deserialize(&version).unwrap(),
-            depth: bytes[4],
-            fingerprint: Fingerprint(fingerprint),
-            child_number: ChildNumber(child_number),
-            k: k,
-            chain_code: c
-        }
+        ExtendedPrivateKey::deserialize(bytes.as_slice()).unwrap()
     }
 
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
@@ -251,7 +214,7 @@ fn transform_master_i_to_k_and_c(i: &[u8; 64]) -> ([u8; 33], [u8; 32]) {
 }
 
 /// add two scalars, each represented by u8 array in big-endian format. 
-pub fn add_scalar_be(a: &[u8; 32], b: &[u8; 32]) -> [u8; 32] {
+fn add_scalar_be(a: &[u8; 32], b: &[u8; 32]) -> [u8; 32] {
     let lhs = Scalar::from_bytes_reduced(GenericArray::from_slice(a));
     let rhs = Scalar::from_bytes_reduced(GenericArray::from_slice(b));
     let tmp = lhs.add(rhs).to_bytes();
@@ -259,6 +222,43 @@ pub fn add_scalar_be(a: &[u8; 32], b: &[u8; 32]) -> [u8; 32] {
     let mut ret = [0u8; 32];
     ret.copy_from_slice(&sum);
     ret
+}
+
+impl Serialize<[u8; 78]> for ExtendedPrivateKey {
+    fn serialize(&self) -> [u8; 78] {
+        let mut bytes = [0u8; 78];
+        bytes[0..4].copy_from_slice(&self.version.serialize());
+        bytes[4] = self.depth;
+        bytes[5..9].copy_from_slice(&self.fingerprint.serialize());
+        bytes[9..13].copy_from_slice(&self.child_number.serialize());
+        bytes[13..45].copy_from_slice(&self.chain_code);
+        bytes[45..78].copy_from_slice(&self.k);
+        bytes
+    }
+}
+
+impl Deserialize<&[u8], Error> for ExtendedPrivateKey {
+    fn deserialize(bytes: &[u8]) -> Result<Self, Error> {
+        if bytes.len() != 82 {
+            return Err(Error::DeseializeError);
+        }
+        let mut c = [0u8; 32];
+        c.copy_from_slice(&bytes[13..45]);
+
+        let mut k = [0u8; 33];
+        k.copy_from_slice(&bytes[45..78]);        
+
+        let res = ExtendedPrivateKey {
+            version: Version::deserialize(&bytes[0..4]).unwrap(),
+            depth: bytes[4],
+            fingerprint: Fingerprint::deserialize(&bytes[5..9]).unwrap(),
+            child_number: ChildNumber::deserialize(&bytes[9..13]).unwrap(),
+            k: k,
+            chain_code: c
+        };
+
+        Ok(res)
+    }
 }
 
 #[cfg(test)]
