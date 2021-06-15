@@ -1,3 +1,6 @@
+use std::convert::TryInto;
+use crate::bip32::serialize::{Serialize, Deserialize};
+use crate::error::Error;
 
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -12,5 +15,22 @@ impl ChildNumber {
         let b3: u8 = ((x >> 8) & 0xff) as u8;
         let b4: u8 = (x & 0xff) as u8;
         ChildNumber([b1, b2, b3, b4])
+    }
+}
+
+impl Serialize<[u8; 4]> for ChildNumber {
+    fn serialize(&self) -> [u8; 4] {
+        self.0
+    }
+}
+
+impl Deserialize<&[u8], Error> for ChildNumber {
+    fn deserialize(bytes: &[u8]) -> Result<Self, Error> {
+        if bytes.len() != 4 {
+            return Err(Error::DeseializeError);
+        }
+
+        let bytes: [u8; 4] = bytes[0..4].try_into().unwrap();
+        Ok(ChildNumber(bytes))
     }
 }

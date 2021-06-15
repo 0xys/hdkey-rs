@@ -5,6 +5,8 @@ use std::convert::TryInto;
 use crate::keys::{PublicKey};
 use crate::bip32::extended_private_key::ExtendedPrivateKey;
 use crate::bip32::extended_public_key::ExtendedPublicKey;
+use crate::bip32::serialize::{Serialize, Deserialize};
+use crate::error::Error;
 
 /// fingerprint of public key
 /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#key-identifiers
@@ -47,5 +49,23 @@ impl Fingerprint {
         let mut fingerprint = [0u8; 4];
         fingerprint.copy_from_slice(&x[0..4]);
         Fingerprint(fingerprint)
+    }
+}
+
+
+impl Serialize<[u8; 4]> for Fingerprint {
+    fn serialize(&self) -> [u8; 4] {
+        self.0
+    }
+}
+
+impl Deserialize<&[u8], Error> for Fingerprint {
+    fn deserialize(bytes: &[u8]) -> Result<Self, Error> {
+        if bytes.len() != 4 {
+            return Err(Error::DeseializeError);
+        }
+
+        let bytes: [u8; 4] = bytes[0..4].try_into().unwrap();
+        Ok(Fingerprint(bytes))
     }
 }

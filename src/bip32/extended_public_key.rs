@@ -62,8 +62,8 @@ impl ExtendedPublicKey {
     }
 
     pub fn to_base58(&self) -> String {
+        let bytes = ExtendedPublicKey::serialize(&self);
         let mut hasher = Sha256::new();
-        let bytes = self.to_raw_bytes();
         hasher.update(&bytes);
         let hashed = hasher.finalize();
 
@@ -72,7 +72,7 @@ impl ExtendedPublicKey {
         let checksum = hasher.finalize();
 
         let mut full_bytes = [0u8; 82];
-        full_bytes[0..78].copy_from_slice(&self.to_raw_bytes());
+        full_bytes[0..78].copy_from_slice(&bytes);
         full_bytes[78..].copy_from_slice(&checksum[0..4]);
 
         full_bytes.to_base58()
@@ -80,30 +80,7 @@ impl ExtendedPublicKey {
 
     pub fn from_base58(base58_str: &str) -> Self {
         let bytes = base58_str.from_base58().unwrap();
-
-        let mut version = [0u8; 4];
-        version.copy_from_slice(&bytes[0..4]);
-
-        let mut fingerprint = [0u8; 4];
-        fingerprint.copy_from_slice(&bytes[5..9]);
-
-        let mut child_number = [0u8; 4];
-        child_number.copy_from_slice(&bytes[9..13]);
-
-        let mut k = [0u8; 33];
-        k.copy_from_slice(&bytes[13..46]);
-
-        let mut c = [0u8; 32];
-        c.copy_from_slice(&bytes[46..78]);
-
-        ExtendedPublicKey {
-            version: Version::deserialize(&version).unwrap(),
-            depth: bytes[4],
-            fingerprint: Fingerprint(fingerprint),
-            child_number: ChildNumber(child_number),
-            k: k,
-            chain_code: c
-        }
+        ExtendedPublicKey::deserialize(bytes.as_slice()).unwrap()
     }
 
     pub fn from_x_priv(ext_priv_key: &ExtendedPrivateKey) -> Self {
@@ -190,4 +167,51 @@ impl PublicKey for ExtendedPublicKey {
     }
 }
 
+impl Serialize<[u8; 78]> for ExtendedPublicKey {
+    fn serialize(&self) -> [u8; 78] {
+        let mut bytes = [0u8; 78];
+        bytes[0..4].copy_from_slice(&self.version.serialize());
+        bytes[4] = self.depth;
+        bytes[5..9].copy_from_slice(&self.fingerprint.0);
+        bytes[9..13].copy_from_slice(&self.child_number.0);
+        bytes[13..45].copy_from_slice(&self.chain_code);
+        bytes[45..78].copy_from_slice(&self.k);
+        bytes
+    }
+}
 
+impl Deserialize<&[u8], Error> for ExtendedPublicKey {
+    fn deserialize(bytes: &[u8]) -> Result<Self, Error> {
+        if bytes.len() != 82 {
+            return Err(Error::DeseializeError);
+        }
+        let mut c = [0u8; 32];
+        c.copy_from_slice(&bytes[13..45]);
+
+        let mut k = [0u8; 33];
+        k.copy_from_slice(&bytes[45..78]);        
+
+        let res = ExtendedPublicKey {
+            version: Version::deserialize(&bytes[0..4]).unwrap(),
+            depth: bytes[4],
+            fingerprint: Fingerprint::deserialize(&bytes[5..9]).unwrap(),
+            child_number: ChildNumber::deserialize(&bytes[9..13]).unwrap(),
+            k: k,
+            chain_code: c
+        };
+
+        Ok(res)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::bip32::extended_public_key::ExtendedPublicKey;
+
+    #[test]
+    fn test_xpub_base58() {
+        let bs58 = "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8";
+        let xpub = ExtendedPublicKey::from_base58(bs58);
+        assert_eq!(bs58, xpub.to_base58());
+    }
+}
