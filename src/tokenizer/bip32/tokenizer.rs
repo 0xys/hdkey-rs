@@ -58,10 +58,10 @@ impl Bip32Tokenizer {
         Ok(())
     }
 
-    fn try_validate_token(current: Option<char>, next: Option<char>, position: usize) -> Result<Token, Bip32TokenizeError> {
-        let current = Self::try_tokenize_single(current, position)?;
-        let next = Self::try_tokenize_single(next, position)?;
-        Self::validate_next(current, position, next)?;
+    fn try_validate_token(current: Option<char>, next: Option<char>, current_position: usize) -> Result<Token, Bip32TokenizeError> {
+        let current = Self::try_tokenize_single(current, current_position)?;
+        let next = Self::try_tokenize_single(next, current_position + 1)?;
+        Self::validate_next(current, next, current_position + 1)?;
         Ok(current)
     }
     
@@ -79,28 +79,28 @@ impl Bip32Tokenizer {
         Ok(token)
     }
     
-    fn validate_next(current: Token, position: usize, next: Token) -> Result<(), Bip32TokenizeError> {
+    fn validate_next(current: Token, next: Token, next_position: usize) -> Result<(), Bip32TokenizeError> {
         match current {
             Token::Start => next.to_queriable()
                 .or(Token::M)
-                .try_result(position, "[m] is expected")?,
+                .try_result(next_position, "[m] is expected here.")?,
             Token::M => next.to_queriable()
                 .or(Token::Slash)
                 .or(Token::End)
-                .try_result(position, "[/] is expected")?,
+                .try_result(next_position, "[/] is expected here.")?,
             Token::Slash =>  next.to_queriable()
                 .or_numbers()
-                .try_result(position, "[0-9] is expected")?,
+                .try_result(next_position, "[0-9] is expected here.")?,
             Token::H => next.to_queriable()
                 .or(Token::Slash)
                 .or(Token::End)
-                .try_result(position, "[/] is expected")?,
+                .try_result(next_position, "[/] is expected here.")?,
             Token::Number(_) => next.to_queriable()
                 .or(Token::Slash)
                 .or_numbers()
                 .or(Token::H)
                 .or(Token::End)
-                .try_result(position, "[/,0-9,'] are expected")?,
+                .try_result(next_position, "[/,0-9,'] are expected here.")?,
             Token::End => return Ok(())
         }
         Ok(())
