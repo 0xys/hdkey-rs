@@ -218,6 +218,25 @@ mod tests {
         // xpub_1
         let bs58 = xpub_1.to_base58();
         assert_eq!("xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8", bs58);        
+    }
 
+    #[test]
+    fn test_xpub_derivation(){
+        let seed_hex_str = "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542";
+
+        let xpriv = ExtendedPrivateKey::from_seed_hex(seed_hex_str).unwrap();
+        let xpub_0 = xpriv.to_x_pub();
+        let xpub_1 = ExtendedPublicKey::from_x_priv(&xpriv);
+
+        let xpub_0 = xpub_0.derive("m/0").unwrap();
+        let xpub_1 = xpub_1.derive("m/0").unwrap();
+
+        // xpub_0
+        let bs58 = xpub_0.to_base58();
+        assert_eq!("xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH", bs58);
+
+        // xpub_1
+        let bs58 = xpub_1.to_base58();
+        assert_eq!("xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH", bs58);        
     }
 }
