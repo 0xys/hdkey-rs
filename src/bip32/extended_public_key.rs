@@ -191,11 +191,33 @@ impl Deserialize<&[u8], Error> for ExtendedPublicKey {
 #[cfg(test)]
 mod tests {
     use crate::bip32::extended_public_key::ExtendedPublicKey;
+    use crate::bip32::extended_private_key::ExtendedPrivateKey;
 
     #[test]
     fn test_xpub_base58() {
         let bs58 = "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8";
         let xpub = ExtendedPublicKey::from_base58(bs58);
         assert_eq!(bs58, xpub.to_base58());
+    }
+
+    #[test]
+    fn test_from_xprv(){
+        let seed_hex_str = "000102030405060708090a0b0c0d0e0f";
+
+        //  --------------------------------------------------------------------------------------------------------------------------------
+        //  m
+        //  --------------------------------------------------------------------------------------------------------------------------------
+        let xpriv = ExtendedPrivateKey::from_seed_hex(seed_hex_str).unwrap();
+        let xpub_0 = xpriv.to_x_pub();
+        let xpub_1 = ExtendedPublicKey::from_x_priv(&xpriv);
+
+        // xpub_0
+        let bs58 = xpub_0.to_base58();
+        assert_eq!("xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8", bs58);
+
+        // xpub_1
+        let bs58 = xpub_1.to_base58();
+        assert_eq!("xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8", bs58);        
+
     }
 }
