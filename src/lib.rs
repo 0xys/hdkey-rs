@@ -3,6 +3,8 @@ mod serializer;
 mod keys;
 mod error;
 
+mod tokenizer;
+
 #[cfg(test)]
 mod tests {
     use crate::bip32::extended_private_key::ExtendedPrivateKey;
