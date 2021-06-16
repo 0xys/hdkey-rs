@@ -7,6 +7,7 @@ pub enum Token {
     Slash,
     Number(u32),
     H,
+    Start,
     End,
 }
 
@@ -19,12 +20,93 @@ impl Token {
     }
 }
 
-/// bip32 path tokenizer
-pub fn tokenize(path: &str) -> Result<Vec<Token>, Bip32TokenizeError> {
-    let mut result: Vec<Token> = vec!();
-    tokenize_next(path, &mut result)?;
-    Ok(result)
+pub struct Bip32Tokenizer {
+    pub tokens: Vec<Token>,
+    pub position: usize,
 }
+
+impl Bip32Tokenizer {
+    pub fn new() -> Self {
+        Bip32Tokenizer {
+            tokens: vec![Token::Start],
+            position: 0
+        }
+    }
+
+    /// bip32 path tokenizer
+    pub fn tokenize(&mut self, path: &str) -> Result<(), Bip32TokenizeError> {
+        if path.len() == 0 {
+            return Err(Bip32TokenizeError::EmptyPath);
+        }
+        self.tokenize_next(path)?;
+        Ok(())
+    }
+
+    fn tokenize_next(&mut self, path: &str) -> Result<(), Bip32TokenizeError> {
+        let current = path.chars().nth(0);
+        if current == None {
+            return Ok(());
+        }
+    
+        let next = path.chars().nth(1);
+        let token = Self::try_validate_token(current, next, self.position)?;
+        self.tokens.push(token);
+        self.position += 1;
+
+        //  recursive call
+        self.tokenize_next(&path[1..])?;
+        Ok(())
+    }
+
+    fn try_validate_token(current: Option<char>, next: Option<char>, position: usize) -> Result<Token, Bip32TokenizeError> {
+        let current = Self::try_tokenize_single(current, position)?;
+        let next = Self::try_tokenize_single(next, position)?;
+        Self::validate_next(current, position, next)?;
+        Ok(current)
+    }
+    
+    fn try_tokenize_single(ch: Option<char>, position: usize) -> Result<Token, Bip32TokenizeError> {
+        let token = match ch {
+            Some(c) => match c {
+                'm' => Token::M,
+                '\'' => Token::H,
+                '/' => Token::Slash,
+                '0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9' => Token::Number(c.to_digit(10).unwrap()),
+                _ => return Err(Bip32TokenizeError::UnparsableAt(position, c))
+            },
+            None => Token::End
+        };
+        Ok(token)
+    }
+    
+    fn validate_next(current: Token, position: usize, next: Token) -> Result<(), Bip32TokenizeError> {
+        match current {
+            Token::Start => next.to_queriable()
+                .or(Token::M)
+                .try_result(position, "[m] is expected")?,
+            Token::M => next.to_queriable()
+                .or(Token::Slash)
+                .or(Token::End)
+                .try_result(position, "[/] is expected")?,
+            Token::Slash =>  next.to_queriable()
+                .or_numbers()
+                .try_result(position, "[0-9] is expected")?,
+            Token::H => next.to_queriable()
+                .or(Token::Slash)
+                .or(Token::End)
+                .try_result(position, "[/] is expected")?,
+            Token::Number(_) => next.to_queriable()
+                .or(Token::Slash)
+                .or_numbers()
+                .or(Token::H)
+                .or(Token::End)
+                .try_result(position, "[/,0-9,'] are expected")?,
+            Token::End => return Ok(())
+        }
+        Ok(())
+    }
+}
+
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 struct TokenQueriable {
@@ -69,61 +151,14 @@ impl TokenQueriable {
     }
 }
 
-fn tokenize_next(path: &str, result: &mut Vec<Token>) -> Result<(), Bip32TokenizeError> {
-    let current = path.chars().nth(0);
-    if current == None {
-        return Ok(());
+
+
+
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test(){
+
     }
-
-    let next = path.chars().nth(1);
-    let token = try_validate_token(current, next, result.len())?;
-    result.push(token);
-    tokenize_next(&path[1..], result)?;
-    Ok(())
-}
-
-fn try_validate_token(current: Option<char>, next: Option<char>, position: usize) -> Result<Token, Bip32TokenizeError> {
-    let current = try_tokenize_single(current, position)?;
-    let next = try_tokenize_single(next, position)?;
-    validate_next(current, position, next)?;
-    Ok(current)
-}
-
-fn try_tokenize_single(ch: Option<char>, position: usize) -> Result<Token, Bip32TokenizeError> {
-    let token = match ch {
-        Some(c) => match c {
-            'm' => Token::M,
-            '\'' => Token::H,
-            '/' => Token::Slash,
-            '0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9' => Token::Number(c.to_digit(10).unwrap()),
-            _ => return Err(Bip32TokenizeError::UnparsableAt(position, c))
-        },
-        None => Token::End
-    };
-    Ok(token)
-}
-
-fn validate_next(current: Token, position: usize, next: Token) -> Result<(), Bip32TokenizeError> {
-    match current {
-        Token::M => next.to_queriable()
-            .or(Token::Slash)
-            .or(Token::End)
-            .try_result(position, "[/] is expected")?,
-        Token::Slash =>  next.to_queriable()
-            .or_numbers()
-            .try_result(position, "[0-9] is expected")?,
-        Token::H => next.to_queriable()
-            .or(Token::Slash)
-            .or(Token::End)
-            .try_result(position, "[/] is expected")?,
-        Token::Number(_) => next.to_queriable()
-            .or(Token::Slash)
-            .or_numbers()
-            .or(Token::H)
-            .or(Token::End)
-            .try_result(position, "[/,0-9,'] are expected")?,
-        Token::End => return Ok(()),
-        _ => return Err(Bip32TokenizeError::Unknown)
-    }
-    Ok(())
 }
