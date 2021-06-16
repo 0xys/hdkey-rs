@@ -34,7 +34,7 @@ impl Fingerprint {
     }
 
     /// calculate fingerprint from ExtendedPrivateKey
-    pub fn from_xpiv(xpriv: &ExtendedPrivateKey) -> Self {
+    pub fn from_xpriv(xpriv: &ExtendedPrivateKey) -> Self {
         let mut hasher = Sha256::new();
         let pubkey = xpriv.public_key();
         hasher.update(pubkey);

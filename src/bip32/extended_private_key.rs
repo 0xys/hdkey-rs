@@ -109,7 +109,7 @@ impl ExtendedPrivateKey {
         let key = ExtendedPrivateKey {
             version: self.version,
             depth: self.depth + 1,
-            fingerprint: Fingerprint::from_xpiv(&self),
+            fingerprint: Fingerprint::from_xpriv(&self),
             child_number: ChildNumber::from_u32(index),
             k: k,
             chain_code: c
@@ -133,7 +133,7 @@ impl ExtendedPrivateKey {
         let key = ExtendedPrivateKey {
             version: self.version,
             depth: self.depth + 1,
-            fingerprint: Fingerprint::from_xpiv(&self),
+            fingerprint: Fingerprint::from_xpriv(&self),
             child_number: ChildNumber::from_u32(index),
             k: k,
             chain_code: c
