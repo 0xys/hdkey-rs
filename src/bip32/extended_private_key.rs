@@ -3,7 +3,6 @@ use k256::Scalar;
 use k256::elliptic_curve::ops::Add;
 
 use hmac_sha512::{HMAC};
-use sha2::{Sha256, Digest as Sha256Digest};
 
 use base58::{ToBase58, FromBase58};
 use generic_array::GenericArray;
@@ -11,7 +10,7 @@ use hex::FromHex;
 
 use crate::keys::{PublicKey, PrivateKey};
 use crate::error::{Error, PathError, SeedError, DeserializationError};
-use crate::bip32::serialize::{Serialize, Deserialize};
+use crate::serializer::{Serialize, Deserialize};
 use crate::bip32::extended_public_key::{ExtendedPublicKey};
 use crate::bip32::checksum::{get_checksum, verify_checksum};
 use crate::bip32::helpers::{split_i};

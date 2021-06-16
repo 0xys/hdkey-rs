@@ -1,4 +1,5 @@
 mod bip32;
+mod serializer;
 mod keys;
 mod error;
 

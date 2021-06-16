@@ -1,4 +1,4 @@
-use crate::bip32::serialize::{Serialize, Deserialize};
+use crate::serializer::{Serialize, Deserialize};
 use crate::error::{Error, DeserializationError};
 
 use std::convert::TryInto;
@@ -76,7 +76,7 @@ impl Deserialize<&[u8], Error> for Version {
 
 #[cfg(test)]
 mod tests {
-    use crate::bip32::serialize::Deserialize;
+    use crate::serializer::Deserialize;
     use crate::bip32::version::{Version, KeyType};
 
     #[test]

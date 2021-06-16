@@ -5,7 +5,7 @@ use std::convert::TryInto;
 use crate::keys::{PublicKey};
 use crate::bip32::extended_private_key::ExtendedPrivateKey;
 use crate::bip32::extended_public_key::ExtendedPublicKey;
-use crate::bip32::serialize::{Serialize, Deserialize};
+use crate::serializer::{Serialize, Deserialize};
 use crate::error::{Error, DeserializationError};
 
 /// fingerprint of public key

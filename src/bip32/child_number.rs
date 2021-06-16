@@ -1,5 +1,5 @@
 use std::convert::TryInto;
-use crate::bip32::serialize::{Serialize, Deserialize};
+use crate::serializer::{Serialize, Deserialize};
 use crate::error::{Error, DeserializationError};
 
 
