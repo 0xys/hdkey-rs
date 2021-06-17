@@ -91,8 +91,111 @@ impl Bip32Tokenizer {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn test(){
+    use crate::tokenizer::bip32::tokenizer::Bip32Tokenizer;
+    use crate::tokenizer::bip32::token::Token;
+    use crate::tokenizer::bip32::error::Bip32TokenizeError;
 
+    #[test]
+    fn test_validate_next(){
+
+        // Start
+        let result = Bip32Tokenizer::validate_next(Token::Start, Token::M, 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Start, Token::Start, 1);
+        expect_err(result);
+        let result = Bip32Tokenizer::validate_next(Token::Start, Token::Number(0), 1);
+        expect_err(result);
+        let result = Bip32Tokenizer::validate_next(Token::Start, Token::Slash, 1);
+        expect_err(result);
+        let result = Bip32Tokenizer::validate_next(Token::Start, Token::H, 1);
+        expect_err(result);
+        let result = Bip32Tokenizer::validate_next(Token::Start, Token::End, 1);
+        expect_err(result);
+
+        //  M
+        let result = Bip32Tokenizer::validate_next(Token::M, Token::Slash, 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::M, Token::End, 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::M, Token::Number(0), 1);
+        expect_err(result);
+        let result = Bip32Tokenizer::validate_next(Token::M, Token::H, 1);
+        expect_err(result);
+        let result = Bip32Tokenizer::validate_next(Token::M, Token::Start, 1);
+        expect_err(result);
+
+        // Slash
+        let result = Bip32Tokenizer::validate_next(Token::Slash, Token::Number(0), 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Slash, Token::Number(1), 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Slash, Token::Number(2), 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Slash, Token::Number(3), 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Slash, Token::Number(4), 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Slash, Token::Number(5), 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Slash, Token::Number(6), 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Slash, Token::Number(7), 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Slash, Token::Number(8), 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Slash, Token::Number(9), 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Slash, Token::Slash, 1);
+        expect_err(result);
+        let result = Bip32Tokenizer::validate_next(Token::Slash, Token::Start, 1);
+        expect_err(result);
+        let result = Bip32Tokenizer::validate_next(Token::Slash, Token::End, 1);
+        expect_err(result);
+        let result = Bip32Tokenizer::validate_next(Token::Slash, Token::H, 1);
+        expect_err(result);
+
+        // H
+        let result = Bip32Tokenizer::validate_next(Token::H, Token::End, 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::H, Token::Slash, 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::H, Token::Number(2), 1);
+        expect_err(result);
+        let result = Bip32Tokenizer::validate_next(Token::H, Token::H, 1);
+        expect_err(result);
+        let result = Bip32Tokenizer::validate_next(Token::H, Token::Start, 1);
+        expect_err(result);
+
+        // Number
+        let result = Bip32Tokenizer::validate_next(Token::Number(0), Token::Slash, 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Number(0), Token::Number(0), 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Number(0), Token::H, 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Number(0), Token::End, 1);
+        expect_ok(result);
+        let result = Bip32Tokenizer::validate_next(Token::Number(0), Token::Start, 1);
+        expect_err(result);
+
+        // End
+        let result = Bip32Tokenizer::validate_next(Token::End, Token::Slash, 1);
+        expect_ok(result);
+    }
+
+    fn expect_ok(result: Result<(), Bip32TokenizeError>){
+        let ok = match result {
+            Ok(_) => 1,
+            Err(_) => 0,
+        };
+        assert_eq!(1, ok);
+    }
+
+    fn expect_err(result: Result<(), Bip32TokenizeError>){
+        let ok = match result {
+            Ok(_) => 1,
+            Err(_) => 0,
+        };
+        assert_eq!(0, ok);
     }
 }
