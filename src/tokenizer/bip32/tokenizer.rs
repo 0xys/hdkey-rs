@@ -4,13 +4,15 @@ use crate::tokenizer::bip32::node::{Node, Stack};
 
 
 pub struct Bip32Tokenizer {
+    can_harden: bool,
     tokens: Vec<Token>,
     position: usize,
 }
 
 impl Bip32Tokenizer {
-    pub fn new() -> Self {
+    pub fn new(can_harden: bool) -> Self {
         Bip32Tokenizer {
+            can_harden: can_harden,
             tokens: vec![Token::Start],
             position: 0
         }
@@ -50,10 +52,10 @@ impl Bip32Tokenizer {
             let node: Option<Node> = match token {
                 Token::Start => None,
                 Token::M => None,
-                Token::Slash => Self::on_slash(&mut stack),
-                Token::Number(_) => Self::on_number(&mut stack, *token),
-                Token::H => Self::on_h(&mut stack, *token),
-                Token::End => Self::on_slash(&mut stack)
+                Token::Slash => self.on_slash(&mut stack)?,
+                Token::Number(_) => self.on_number(&mut stack, *token),
+                Token::H => self.on_h(&mut stack, *token)?,
+                Token::End => self.on_slash(&mut stack)?
             };
             
             match node {
@@ -65,9 +67,9 @@ impl Bip32Tokenizer {
         Ok(nodes)
     }
 
-    fn on_slash(stack: &mut Stack) -> Option<Node> {
+    fn on_slash(&self, stack: &mut Stack) -> Result<Option<Node>, Bip32TokenizeError> {
         if stack.peek() == None {
-            return None
+            return Ok(None)
         }
 
         let mut accumulator = 0;
@@ -83,7 +85,7 @@ impl Bip32Tokenizer {
                         continue;
                     },
                     Token::Number(n) => n,
-                    _ => 0
+                    _ => return Err(Bip32TokenizeError::Unknown)
                 }
             };
             accumulator += num * current_digit;
@@ -94,17 +96,20 @@ impl Bip32Tokenizer {
             index: accumulator,
             hardened: is_hardened,
         };
-        Some(node)
+        Ok(Some(node))
     }
 
-    fn on_number(stack: &mut Stack, token: Token) -> Option<Node> {
+    fn on_number(&self, stack: &mut Stack, token: Token) -> Option<Node> {
         stack.push(Box::new(token));
         None
     }
 
-    fn on_h(stack: &mut Stack, token: Token) -> Option<Node> {
+    fn on_h(&self, stack: &mut Stack, token: Token) -> Result<Option<Node>, Bip32TokenizeError> {
+        if !self.can_harden{
+            return Err(Bip32TokenizeError::CannotHarden)
+        }
         stack.push(Box::new(token));
-        None
+        Ok(None)
     }
 
     fn try_validate_token(current: Option<char>, next: Option<char>, current_position: usize) -> Result<Token, Bip32TokenizeError> {

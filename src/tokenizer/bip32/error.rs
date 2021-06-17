@@ -4,5 +4,6 @@ pub enum Bip32TokenizeError {
     IncoherentAt(usize, String),
     EmptyPath,
     MustStartWithM,
-    Unknown
+    Unknown,
+    CannotHarden
 }
