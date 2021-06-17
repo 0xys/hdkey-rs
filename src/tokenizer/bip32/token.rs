@@ -1,7 +1,7 @@
 use crate::tokenizer::bip32::error::{Bip32TokenizeError};
 
 
-/// bip32 path unit
+/// bip32 path tokenized letter
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Token {
     M,
