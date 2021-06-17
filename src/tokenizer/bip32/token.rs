@@ -44,10 +44,7 @@ impl TokenQueriable {
         let result = match self.result {
             true => true,
             false => match self.token {
-                Token::Number(1) | Token::Number(2) | Token::Number(3)
-                    | Token::Number(4) | Token::Number(5) | Token::Number(6)
-                    | Token::Number(7) | Token::Number(8) | Token::Number(9)
-                    | Token::Number(0) => true,
+                Token::Number(_) => true,
                 _ => false
             },
         };
