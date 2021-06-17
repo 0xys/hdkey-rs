@@ -183,6 +183,65 @@ mod tests {
         expect_ok(result);
     }
 
+    #[test]
+    fn test_tokenize_single(){
+        let result = Bip32Tokenizer::try_tokenize_single(None, 0);
+        expect_token(result, Token::End);
+
+        let result = Bip32Tokenizer::try_tokenize_single(Some('m'), 0);
+        expect_token(result, Token::M);
+
+        let result = Bip32Tokenizer::try_tokenize_single(Some('\''), 0);
+        expect_token(result, Token::H);
+
+        let result = Bip32Tokenizer::try_tokenize_single(Some('/'), 0);
+        expect_token(result, Token::Slash);
+
+        let result = Bip32Tokenizer::try_tokenize_single(Some('0'), 0);
+        expect_token(result, Token::Number(0));
+        let result = Bip32Tokenizer::try_tokenize_single(Some('1'), 0);
+        expect_token(result, Token::Number(1));
+        let result = Bip32Tokenizer::try_tokenize_single(Some('2'), 0);
+        expect_token(result, Token::Number(2));
+        let result = Bip32Tokenizer::try_tokenize_single(Some('3'), 0);
+        expect_token(result, Token::Number(3));
+        let result = Bip32Tokenizer::try_tokenize_single(Some('4'), 0);
+        expect_token(result, Token::Number(4));
+        let result = Bip32Tokenizer::try_tokenize_single(Some('5'), 0);
+        expect_token(result, Token::Number(5));
+        let result = Bip32Tokenizer::try_tokenize_single(Some('6'), 0);
+        expect_token(result, Token::Number(6));
+        let result = Bip32Tokenizer::try_tokenize_single(Some('7'), 0);
+        expect_token(result, Token::Number(7));
+        let result = Bip32Tokenizer::try_tokenize_single(Some('8'), 0);
+        expect_token(result, Token::Number(8));
+        let result = Bip32Tokenizer::try_tokenize_single(Some('9'), 0);
+        expect_token(result, Token::Number(9));
+
+        let result = Bip32Tokenizer::try_tokenize_single(Some('-'), 0);
+        expect_token_err(result);
+        let result = Bip32Tokenizer::try_tokenize_single(Some('M'), 0);
+        expect_token_err(result);
+        let result = Bip32Tokenizer::try_tokenize_single(Some('H'), 0);
+        expect_token_err(result);
+    }
+
+    fn expect_token(result: Result<Token, Bip32TokenizeError>, t: Token){
+        let ok = match result {
+            Ok(token) => token == t,
+            Err(_) => false,
+        };
+        assert_eq!(true, ok);
+    }
+
+    fn expect_token_err(result: Result<Token, Bip32TokenizeError>){
+        let ok = match result {
+            Ok(_) => 1,
+            Err(_) => 0,
+        };
+        assert_eq!(0, ok);
+    }
+
     fn expect_ok(result: Result<(), Bip32TokenizeError>){
         let ok = match result {
             Ok(_) => 1,
