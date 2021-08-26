@@ -179,6 +179,7 @@ impl ExtendedPublicKey {
         data[5..9].copy_from_slice(&x[0..4]);
     }
 
+    #[inline(always)]
     fn update_childnumber(c: u32, data: &mut [u8]){
         data[9] = ((c >> 24) & 0xff) as u8;
         data[10] = ((c >> 16) & 0xff) as u8;
