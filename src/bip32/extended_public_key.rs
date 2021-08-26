@@ -7,6 +7,9 @@ use k256::EncodedPoint;
 use k256::ProjectivePoint;
 use core::ops::Add;
 
+use sha2::{Sha256, Digest as Sha256Digest};
+use ripemd160::{Ripemd160};
+
 use std::convert::TryInto;
 
 use crate::keys::{PublicKey};
@@ -117,6 +120,75 @@ impl ExtendedPublicKey {
         }
     }
 
+    fn derive_in_place(nodes: &[Node], bytes: &mut [u8]) -> Result<(), Error> {
+        if nodes.len() == 0 {
+            return Ok(());
+        }else{
+
+            return Ok(());
+        }
+    }
+
+    fn derive_child_in_place(index: u32, bytes: &mut [u8]) -> Result<(), Error> {
+        if index >= 2147483648 {
+            return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
+        }
+
+        let tmp = [0u8; 4];
+        bytes[9..13].copy_from_slice(&tmp);
+
+        let mut data = [0u8;37];
+        data[0..4].copy_from_slice(&bytes[9..13]);
+        data[4..].copy_from_slice(&bytes[45..78]);
+        let hash = HMAC::mac(&data, &bytes[13..45]);
+
+        let sk = SigningKey::from_bytes(&hash[..32]).unwrap();
+        Self::add_pubkeys(&mut bytes[45..78], &sk.verify_key().to_bytes());
+
+        bytes[4] += 1; // increment depth
+
+        Self::update_fingerprint(bytes);
+        Self::update_childnumber(index, bytes);
+
+        Ok(())
+    }
+
+    fn add_pubkeys(a: &mut [u8], b: &[u8]) {
+        let point1 = EncodedPoint::from_bytes(&a).unwrap();
+        let point1 = ProjectivePoint::from_encoded_point(&point1).unwrap();
+    
+        let point2 = EncodedPoint::from_bytes(&b).unwrap();
+        let point2 = ProjectivePoint::from_encoded_point(&point2).unwrap();
+
+        let point = point1.add(point2);
+        let encoded = point.to_affine().to_encoded_point(true);
+
+        let tmp = [0u8; 4];
+        a[0..].copy_from_slice(&tmp);
+
+        
+    }
+
+    fn update_fingerprint(data: &mut [u8]) {
+        let mut hasher = Sha256::new();
+        hasher.update(&data[45..78]);
+        let sha256ed = hasher.finalize();
+
+        let mut hasher = Ripemd160::new();
+        hasher.update(&sha256ed);
+        let rip160ed = hasher.finalize();
+        
+        let x: [u8; 20] = rip160ed.as_slice().try_into().unwrap();
+        data[5..9].copy_from_slice(&x[0..4]);
+    }
+
+    fn update_childnumber(c: u32, data: &mut [u8]){
+        data[9] = ((c >> 24) & 0xff) as u8;
+        data[10] = ((c >> 16) & 0xff) as u8;
+        data[11] = ((c >> 8) & 0xff) as u8;
+        data[12] = (c & 0xff) as u8;
+    }
+
     fn add_pubkeys_bytes(&self, pk1: &[u8; 33], pk2: &[u8; 33]) -> [u8; 33] {
         let point1 = EncodedPoint::from_bytes(pk1).unwrap();
         let point1 = ProjectivePoint::from_encoded_point(&point1).unwrap();
@@ -134,7 +206,7 @@ impl ExtendedPublicKey {
 
     fn transform_i_to_k_and_c(&self, i: &[u8; 64]) -> ([u8; 33], [u8; 32]) {
         let (i_left, i_right) = split_i(&i);
-        let sk = SigningKey::from_bytes(&i_left).unwrap();
+        let sk = SigningKey::from_bytes(&i[..32]).unwrap();
         let sum = self.add_pubkeys_bytes(&self.k, &sk.verify_key().to_bytes());
         
         (sum, i_right)
