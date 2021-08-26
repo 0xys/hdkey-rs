@@ -163,10 +163,7 @@ impl ExtendedPublicKey {
         let point = point1.add(point2);
         let encoded = point.to_affine().to_encoded_point(true);
 
-        let tmp = [0u8; 4];
-        a[0..].copy_from_slice(&tmp);
-
-        
+        a[0..].copy_from_slice(encoded.as_bytes());
     }
 
     fn update_fingerprint(data: &mut [u8]) {
