@@ -175,7 +175,7 @@ impl ExtendedPublicKey {
         hasher.update(&sha256ed);
         let rip160ed = hasher.finalize();
         
-        let x: [u8; 20] = rip160ed.as_slice().try_into().unwrap();
+        let x = rip160ed.as_slice();
         data[5..9].copy_from_slice(&x[0..4]);
     }
 
