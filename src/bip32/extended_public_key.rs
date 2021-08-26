@@ -124,7 +124,8 @@ impl ExtendedPublicKey {
         if nodes.len() == 0 {
             return Ok(());
         }else{
-
+            Self::derive_child_in_place(nodes[0].index, bytes)?;
+            Self::derive_in_place(&nodes[1..], bytes)?;
             return Ok(());
         }
     }
