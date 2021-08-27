@@ -61,6 +61,29 @@ impl ExtendedPublicKey {
         full_bytes.to_base58()
     }
 
+    pub fn to_base58_2(&self) -> String {
+        let bytes = self.serialize();
+        println!("normal  {:?}", hex::encode(&bytes));
+        let checksum = get_checksum(&bytes);
+
+        let mut full_bytes = [0u8; 82];
+        full_bytes[0..78].copy_from_slice(&bytes);
+        full_bytes[78..].copy_from_slice(&checksum);
+
+        full_bytes.to_base58()
+    }
+
+    pub fn with_checksum(bytes: &[u8]) -> [u8; 82] {
+        // let bytes = self.serialize();
+        println!("inplace {:?}", hex::encode(&bytes));
+        let checksum = get_checksum(&bytes);
+
+        let mut full_bytes = [0u8; 82];
+        full_bytes[0..78].copy_from_slice(&bytes);
+        full_bytes[78..].copy_from_slice(&checksum);
+        full_bytes
+    }
+
     pub fn from_base58(base58_str: &str) -> Self {
         let bytes = base58_str.from_base58().unwrap();
         ExtendedPublicKey::deserialize(bytes.as_slice()).unwrap()
@@ -111,6 +134,17 @@ impl ExtendedPublicKey {
         Self::derive_from(&self, &nodes)
     }
 
+    pub fn derive2(path: &str, bytes: &mut [u8]) -> Result<Self, Error> {
+        let nodes = match valiidate_path(path, false) {
+            Err(err) => return Err(err),
+            Ok(x) => x
+        };
+
+        Self::derive_in_place(&nodes, bytes)?;
+        let bytes = Self::with_checksum(bytes);
+        Self::deserialize(&bytes)
+    }
+
     fn derive_from(current: &Self, nodes: &[Node]) -> Result<Self, Error> {
         if nodes.len() == 0 {
             return Ok(current.clone());
@@ -135,21 +169,25 @@ impl ExtendedPublicKey {
             return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
 
-        let tmp = [0u8; 4];
-        bytes[9..13].copy_from_slice(&tmp);
-
         let mut data = [0u8;37];
-        data[0..4].copy_from_slice(&bytes[9..13]);
-        data[4..].copy_from_slice(&bytes[45..78]);
+        data[0..33].copy_from_slice(&bytes[45..78]);
+        data[33..].copy_from_slice(&bytes[9..13]);
         let hash = HMAC::mac(&data, &bytes[13..45]);
+        println!("0       {:?}", hex::encode(&bytes));
 
         let sk = SigningKey::from_bytes(&hash[..32]).unwrap();
         Self::add_pubkeys(&mut bytes[45..78], &sk.verify_key().to_bytes());
+        bytes[13..45].copy_from_slice(&hash[32..]);
+        println!("1       {:?}", hex::encode(&bytes));
+
 
         bytes[4] += 1; // increment depth
+        println!("2       {:?}", hex::encode(&bytes));
 
         Self::update_fingerprint(bytes);
+        println!("3       {:?}", hex::encode(&bytes));
         Self::update_childnumber(index, bytes);
+        println!("4       {:?}", hex::encode(&bytes));
 
         Ok(())
     }
@@ -167,9 +205,9 @@ impl ExtendedPublicKey {
         a[0..].copy_from_slice(encoded.as_bytes());
     }
 
-    fn update_fingerprint(data: &mut [u8]) {
+    fn update_fingerprint(bytes: &mut [u8]) {
         let mut hasher = Sha256::new();
-        hasher.update(&data[45..78]);
+        hasher.update(&bytes[45..78]);
         let sha256ed = hasher.finalize();
 
         let mut hasher = Ripemd160::new();
@@ -177,7 +215,7 @@ impl ExtendedPublicKey {
         let rip160ed = hasher.finalize();
         
         let x = rip160ed.as_slice();
-        data[5..9].copy_from_slice(&x[0..4]);
+        bytes[5..9].copy_from_slice(&x[0..4]);
     }
 
     #[inline(always)]
@@ -263,6 +301,7 @@ impl Deserialize<&[u8], Error> for ExtendedPublicKey {
 mod tests {
     use crate::bip32::extended_public_key::ExtendedPublicKey;
     use crate::bip32::extended_private_key::ExtendedPrivateKey;
+    use crate::serializer::Serialize;
 
     #[test]
     fn test_xpub_base58() {
@@ -288,7 +327,7 @@ mod tests {
         assert_eq!("xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8", bs58);        
     }
 
-    #[test]
+    // #[test]
     fn test_xpub_derivation(){
         let seed_hex_str = "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542";
 
@@ -306,5 +345,30 @@ mod tests {
         // xpub_1
         let bs58 = xpub_1.to_base58();
         assert_eq!("xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH", bs58);        
+    }
+
+    #[test]
+    fn test_in_place_derivation(){
+        let seed_hex_str = "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542";
+
+        let xpriv = ExtendedPrivateKey::from_seed_hex(seed_hex_str).unwrap();
+        let xpub_0 = xpriv.to_x_pub();
+        let xpub_1 = ExtendedPublicKey::from_x_priv(&xpriv);
+
+        let mut bytes = xpub_0.serialize();
+
+        println!("original {:?}", xpub_0.to_base58());
+
+        // let xpub_0 = xpub_0.derive("m/0").unwrap();
+        let xpub_0 = ExtendedPublicKey::derive2("m/0", &mut bytes).unwrap();
+        let xpub_1 = xpub_1.derive("m/0").unwrap();
+
+        // xpub_1
+        let bs58 = xpub_1.to_base58_2();
+        assert_eq!("xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH", bs58);
+
+        // xpub_0
+        let bs58 = xpub_0.to_base58();
+        assert_eq!("xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH", bs58);
     }
 }
