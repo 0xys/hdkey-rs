@@ -169,6 +169,9 @@ impl ExtendedPublicKey {
             return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
 
+        Self::update_fingerprint(bytes);
+        println!("3       {:?}", hex::encode(&bytes));
+
         let mut data = [0u8;37];
         data[0..33].copy_from_slice(&bytes[45..78]);
         data[33..].copy_from_slice(&bytes[9..13]);
@@ -184,8 +187,7 @@ impl ExtendedPublicKey {
         bytes[4] += 1; // increment depth
         println!("2       {:?}", hex::encode(&bytes));
 
-        Self::update_fingerprint(bytes);
-        println!("3       {:?}", hex::encode(&bytes));
+        
         Self::update_childnumber(index, bytes);
         println!("4       {:?}", hex::encode(&bytes));
 
