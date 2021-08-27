@@ -62,28 +62,28 @@ impl ExtendedPublicKey {
         full_bytes.to_base58()
     }
 
-    pub fn to_base58_2(&self) -> String {
-        let bytes = self.serialize();
-        println!("normal  {:?}", hex::encode(&bytes));
-        let checksum = get_checksum(&bytes);
+    // pub fn to_base58_2(&self) -> String {
+    //     let bytes = self.serialize();
+    //     println!("normal  {:?}", hex::encode(&bytes));
+    //     let checksum = get_checksum(&bytes);
 
-        let mut full_bytes = [0u8; 82];
-        full_bytes[0..78].copy_from_slice(&bytes);
-        full_bytes[78..].copy_from_slice(&checksum);
+    //     let mut full_bytes = [0u8; 82];
+    //     full_bytes[0..78].copy_from_slice(&bytes);
+    //     full_bytes[78..].copy_from_slice(&checksum);
 
-        full_bytes.to_base58()
-    }
+    //     full_bytes.to_base58()
+    // }
 
-    pub fn with_checksum(bytes: &[u8]) -> [u8; 82] {
-        // let bytes = self.serialize();
-        println!("inplace {:?}", hex::encode(&bytes));
-        let checksum = get_checksum(&bytes);
+    // pub fn with_checksum(bytes: &[u8]) -> [u8; 82] {
+    //     // let bytes = self.serialize();
+    //     println!("inplace {:?}", hex::encode(&bytes));
+    //     let checksum = get_checksum(&bytes);
 
-        let mut full_bytes = [0u8; 82];
-        full_bytes[0..78].copy_from_slice(&bytes);
-        full_bytes[78..].copy_from_slice(&checksum);
-        full_bytes
-    }
+    //     let mut full_bytes = [0u8; 82];
+    //     full_bytes[0..78].copy_from_slice(&bytes);
+    //     full_bytes[78..].copy_from_slice(&checksum);
+    //     full_bytes
+    // }
 
     pub fn from_base58(base58_str: &str) -> Self {
         let bytes = base58_str.from_base58().unwrap();
@@ -166,14 +166,14 @@ impl ExtendedPublicKey {
         if nodes.len() == 0 {
             return Ok(());
         }else{
-            Self::derive_next(nodes[0].index, bytes)?;
+            Self::derive_index(nodes[0].index, bytes)?;
             Self::derive_from(&nodes[1..], bytes)?;
             Ok(())
         }
     }
 
     pub fn derive_child(&mut self, index: u32) -> Result<Self, Error> {
-        Self::derive_next(index, &mut self.bytes)?;
+        Self::derive_index(index, &mut self.bytes)?;
         Self::add_checksum(&mut self.bytes);
         let result = ExtendedPublicKey{
             bytes: self.bytes
@@ -181,7 +181,7 @@ impl ExtendedPublicKey {
         Ok(result)
     }
 
-    fn derive_next(index: u32, bytes: &mut [u8]) -> Result<(), Error> {
+    fn derive_index(index: u32, bytes: &mut [u8]) -> Result<(), Error> {
         if index >= 2147483648 {
             return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
@@ -316,20 +316,20 @@ impl ExtendedPublicKey {
         data[12] = (c & 0xff) as u8;
     }
 
-    fn add_pubkeys_bytes(&self, pk1: &[u8; 33], pk2: &[u8; 33]) -> [u8; 33] {
-        let point1 = EncodedPoint::from_bytes(pk1).unwrap();
-        let point1 = ProjectivePoint::from_encoded_point(&point1).unwrap();
+    // fn add_pubkeys_bytes(&self, pk1: &[u8; 33], pk2: &[u8; 33]) -> [u8; 33] {
+    //     let point1 = EncodedPoint::from_bytes(pk1).unwrap();
+    //     let point1 = ProjectivePoint::from_encoded_point(&point1).unwrap();
     
-        let point2 = EncodedPoint::from_bytes(pk2).unwrap();
-        let point2 = ProjectivePoint::from_encoded_point(&point2).unwrap();
+    //     let point2 = EncodedPoint::from_bytes(pk2).unwrap();
+    //     let point2 = ProjectivePoint::from_encoded_point(&point2).unwrap();
     
-        let point = point1.add(point2);
-        let encoded = point.to_affine().to_encoded_point(true);
+    //     let point = point1.add(point2);
+    //     let encoded = point.to_affine().to_encoded_point(true);
     
-        let mut bytes = [0u8; 33];
-        bytes.copy_from_slice(encoded.as_bytes());
-        bytes
-    }
+    //     let mut bytes = [0u8; 33];
+    //     bytes.copy_from_slice(encoded.as_bytes());
+    //     bytes
+    // }
 
     // fn transform_i_to_k_and_c(&self, i: &[u8; 64]) -> ([u8; 33], [u8; 32]) {
     //     let (i_left, i_right) = split_i(&i);
