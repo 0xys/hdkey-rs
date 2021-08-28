@@ -23,31 +23,39 @@ use crate::bip32::child_number::{ChildNumber};
 
 #[derive(Debug, Clone)]
 pub struct ExtendedPrivateKey {
-    version: Version,
-    depth: u8,
-    fingerprint: Fingerprint,
-    child_number: ChildNumber,
-    chain_code: [u8;32],
-    k: [u8;33],
+    // version: Version,
+    // depth: u8,
+    // fingerprint: Fingerprint,
+    // child_number: ChildNumber,
+    // chain_code: [u8;32],
+    // k: [u8;33],
     bytes: [u8; 82]
 }
 
+const RANGE_VERSION: std::ops::Range<usize> = 0..4;
+const RANGE_DEPTH: std::ops::Range<usize> = 4..4;
+const RANGE_FINGERPRINT: std::ops::Range<usize> = 5..9;
+const RANGE_CHILD_NUMBER: std::ops::Range<usize> = 9..13;
+const RANGE_CHAIN_CODE: std::ops::Range<usize> = 13..45;
+const RANGE_PRIVATE_KEY: std::ops::Range<usize> = 46..78;
+const RANGE_CHECKSUM: std::ops::Range<usize> = 78..82;
+
 impl ExtendedPrivateKey {
-    pub fn version(&self) -> &Version {
-        &self.version
-    }
-    pub fn depth(&self) -> &u8 {
-        &self.depth
-    }
-    pub fn fingerprint(&self) -> &Fingerprint {
-        &self.fingerprint
-    }
-    pub fn child_number(&self) -> &ChildNumber {
-        &self.child_number
-    }
-    pub fn chain_code(&self) -> &[u8;32] {
-        &self.chain_code
-    }
+    // pub fn version(&self) -> &Version {
+    //     &self.version
+    // }
+    // pub fn depth(&self) -> &u8 {
+    //     &self.depth
+    // }
+    // pub fn fingerprint(&self) -> &Fingerprint {
+    //     &self.fingerprint
+    // }
+    // pub fn child_number(&self) -> &ChildNumber {
+    //     &self.child_number
+    // }
+    // pub fn chain_code(&self) -> &[u8;32] {
+    //     &self.chain_code
+    // }
 
     /// generate master private key from seed.
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#master-key-generation
@@ -56,23 +64,23 @@ impl ExtendedPrivateKey {
             return Err(Error::InvalidSeed(SeedError::OutOfBounds(seed.len())));
         }
         let key = b"Bitcoin seed";
-        let i = HMAC::mac(seed, key);
-        let (k, c) = transform_master_i_to_k_and_c(&i);
 
         let mut bytes = [0u8; 82];
-        
+
+        let i = HMAC::mac(seed, key);
+        bytes[RANGE_CHAIN_CODE].copy_from_slice(&i[32..]);
+        bytes[RANGE_PRIVATE_KEY].copy_from_slice(&i[..32]);
+
         let v = Version::MainNet(KeyType::Private);
-        bytes[0..4].copy_from_slice(&v.serialize());
-        bytes[13..45].copy_from_slice(&c);
-        bytes[45..78].copy_from_slice(&k);
+        bytes[RANGE_VERSION].copy_from_slice(&v.serialize());
 
         let master_key = ExtendedPrivateKey {
-            version: Version::MainNet(KeyType::Private),
-            depth: 0x00,
-            fingerprint: Fingerprint([0x00, 0x00, 0x00, 0x00]),
-            child_number: ChildNumber([0x00, 0x00, 0x00, 0x00]),
-            k: k,
-            chain_code: c,
+            // version: Version::MainNet(KeyType::Private),
+            // depth: 0x00,
+            // fingerprint: Fingerprint([0x00, 0x00, 0x00, 0x00]),
+            // child_number: ChildNumber([0x00, 0x00, 0x00, 0x00]),
+            // k: k,
+            // chain_code: c,
             bytes
         };
 
@@ -112,24 +120,22 @@ impl ExtendedPrivateKey {
         Self::update_childnumber(index, &mut self.bytes);
         
         let mut data = vec![0u8;37];
-        data[1..33].copy_from_slice(&self.bytes[46..78]);   // private key
-        data[33..].copy_from_slice(&self.bytes[9..13]);     // 
+        data[1..33].copy_from_slice(&self.bytes[RANGE_PRIVATE_KEY]);
+        data[33..].copy_from_slice(&self.bytes[RANGE_CHILD_NUMBER]);
 
-        let i = HMAC::mac(data, &self.bytes[13..45]);
-        let (k, c) = self.transform_i_to_k_and_c(&i);
-
-        self.bytes[13..45].copy_from_slice(&c);
-        self.bytes[45..78].copy_from_slice(&k);
+        let i = HMAC::mac(data, &self.bytes[RANGE_CHAIN_CODE]);
+        self.bytes[RANGE_CHAIN_CODE].copy_from_slice(&i[32..]);
+        add_scalar_be(&mut self.bytes[RANGE_PRIVATE_KEY], &i[..32]);
 
         Self::add_checksum(&mut self.bytes);
 
         let key = ExtendedPrivateKey {
-            version: self.version,
-            depth: self.depth + 1,
-            fingerprint: Fingerprint::from_xpriv(&self),
-            child_number: ChildNumber::from_u32(index),
-            k: k,
-            chain_code: c,
+            // version: self.version,
+            // depth: self.depth + 1,
+            // fingerprint: Fingerprint::from_xpriv(&self),
+            // child_number: ChildNumber::from_u32(index),
+            // k: k,
+            // chain_code: c,
             bytes: self.bytes
             
         };
@@ -174,23 +180,21 @@ impl ExtendedPrivateKey {
         let mut data = vec![0u8;37];
         let sk = SigningKey::from_bytes(&self.private_key()).unwrap();
         data[0..33].copy_from_slice(&sk.verify_key().to_bytes());
-        data[33..].copy_from_slice(&self.bytes[9..13]);
+        data[33..].copy_from_slice(&self.bytes[RANGE_CHILD_NUMBER]);
 
-        let i = HMAC::mac(data, &self.bytes[13..45]);
-        let (k, c) = self.transform_i_to_k_and_c(&i);
-
-        self.bytes[13..45].copy_from_slice(&c);
-        self.bytes[45..78].copy_from_slice(&k);
+        let i = HMAC::mac(data, &self.bytes[RANGE_CHAIN_CODE]);
+        self.bytes[RANGE_CHAIN_CODE].copy_from_slice(&i[32..]);
+        add_scalar_be(&mut self.bytes[RANGE_PRIVATE_KEY], &i[..32]);
 
         Self::add_checksum(&mut self.bytes);
 
         let key = ExtendedPrivateKey {
-            version: self.version,
-            depth: self.depth + 1,
-            fingerprint: Fingerprint::from_xpriv(&self),
-            child_number: ChildNumber::from_u32(index),
-            k: k,
-            chain_code: c,
+            // version: self.version,
+            // depth: self.depth + 1,
+            // fingerprint: Fingerprint::from_xpriv(&self),
+            // child_number: ChildNumber::from_u32(index),
+            // k: k,
+            // chain_code: c,
             bytes: self.bytes
         };
         Ok(key)
@@ -330,14 +334,11 @@ fn transform_master_i_to_k_and_c(i: &[u8; 64]) -> ([u8; 33], [u8; 32]) {
 }
 
 /// add two scalars, each represented by u8 array in big-endian format. 
-fn add_scalar_be(a: &[u8; 32], b: &[u8; 32]) -> [u8; 32] {
+fn add_scalar_be(a: &mut [u8], b: &[u8]) {
     let lhs = Scalar::from_bytes_reduced(GenericArray::from_slice(a));
     let rhs = Scalar::from_bytes_reduced(GenericArray::from_slice(b));
-    let tmp = lhs.add(rhs).to_bytes();
-    let sum = tmp.as_slice();
-    let mut ret = [0u8; 32];
-    ret.copy_from_slice(&sum);
-    ret
+    let sum = lhs.add(rhs).to_bytes();
+    a.copy_from_slice(sum.as_slice());
 }
 
 impl Serialize<[u8; 78]> for ExtendedPrivateKey {
