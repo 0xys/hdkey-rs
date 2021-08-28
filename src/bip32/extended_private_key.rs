@@ -2,6 +2,8 @@ use k256::ecdsa::SigningKey;
 use k256::Scalar;
 use k256::elliptic_curve::ops::Add;
 
+use sha2::{Sha256, Digest as Sha256Digest};
+use ripemd160::{Ripemd160};
 use hmac_sha512::{HMAC};
 
 use base58::{ToBase58, FromBase58};
@@ -27,6 +29,7 @@ pub struct ExtendedPrivateKey {
     child_number: ChildNumber,
     chain_code: [u8;32],
     k: [u8;33],
+    bytes: [u8; 82]
 }
 
 impl ExtendedPrivateKey {
@@ -56,13 +59,21 @@ impl ExtendedPrivateKey {
         let i = HMAC::mac(seed, key);
         let (k, c) = transform_master_i_to_k_and_c(&i);
 
+        let mut bytes = [0u8; 82];
+        
+        let v = Version::MainNet(KeyType::Private);
+        bytes[0..4].copy_from_slice(&v.serialize());
+        bytes[13..45].copy_from_slice(&c);
+        bytes[45..78].copy_from_slice(&k);
+
         let master_key = ExtendedPrivateKey {
             version: Version::MainNet(KeyType::Private),
             depth: 0x00,
             fingerprint: Fingerprint([0x00, 0x00, 0x00, 0x00]),
             child_number: ChildNumber([0x00, 0x00, 0x00, 0x00]),
             k: k,
-            chain_code: c
+            chain_code: c,
+            bytes
         };
 
         Ok(master_key)
@@ -89,8 +100,44 @@ impl ExtendedPrivateKey {
         ExtendedPrivateKey::deserialize(bytes.as_slice()).unwrap()
     }
 
-    /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
     pub fn derive_hardended_child(&self, index: u32) -> Result<Self, Error> {
+        if index >= 2147483648 {
+            return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
+        }
+
+        // for hardened index.
+        let index = index + 2147483648;
+
+        Self::update_fingerprint(&mut self.bytes);
+        Self::update_childnumber(index, &mut self.bytes);
+        
+        let mut data = vec![0u8;37];
+        data[1..33].copy_from_slice(&self.bytes[46..78]);   // private key
+        data[33..].copy_from_slice(&self.bytes[9..13]);     // 
+
+        let i = HMAC::mac(data, &self.bytes[13..45]);
+        let (k, c) = self.transform_i_to_k_and_c(&i);
+
+        self.bytes[13..45].copy_from_slice(&c);
+        self.bytes[45..78].copy_from_slice(&k);
+
+        Self::add_checksum(&mut self.bytes);
+
+        let key = ExtendedPrivateKey {
+            version: self.version,
+            depth: self.depth + 1,
+            fingerprint: Fingerprint::from_xpriv(&self),
+            child_number: ChildNumber::from_u32(index),
+            k: k,
+            chain_code: c,
+            bytes: self.bytes
+            
+        };
+        Ok(key)
+    }
+
+    /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
+    pub fn _derive_hardended_child(&self, index: u32) -> Result<Self, Error> {
         if index >= 2147483648 {
             return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
@@ -116,8 +163,41 @@ impl ExtendedPrivateKey {
         Ok(key)
     }
 
-    /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
     pub fn derive_child(&self, index: u32) -> Result<Self, Error> {
+        if index >= 2147483648 {
+            return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
+        }
+
+        Self::update_fingerprint(&mut self.bytes);
+        Self::update_childnumber(index, &mut self.bytes);
+        
+        let mut data = vec![0u8;37];
+        let sk = SigningKey::from_bytes(&self.private_key()).unwrap();
+        data[0..33].copy_from_slice(&sk.verify_key().to_bytes());
+        data[33..].copy_from_slice(&self.bytes[9..13]);
+
+        let i = HMAC::mac(data, &self.bytes[13..45]);
+        let (k, c) = self.transform_i_to_k_and_c(&i);
+
+        self.bytes[13..45].copy_from_slice(&c);
+        self.bytes[45..78].copy_from_slice(&k);
+
+        Self::add_checksum(&mut self.bytes);
+
+        let key = ExtendedPrivateKey {
+            version: self.version,
+            depth: self.depth + 1,
+            fingerprint: Fingerprint::from_xpriv(&self),
+            child_number: ChildNumber::from_u32(index),
+            k: k,
+            chain_code: c,
+            bytes: self.bytes
+        };
+        Ok(key)
+    }
+
+    /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
+    pub fn _derive_child(&self, index: u32) -> Result<Self, Error> {
         if index >= 2147483648 {
             return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
@@ -140,7 +220,7 @@ impl ExtendedPrivateKey {
         Ok(key)
     }
 
-    pub fn derive(&self, path: &str) -> Result<Self, Error> {
+    pub fn _derive(&self, path: &str) -> Result<Self, Error> {
         let nodes = match valiidate_path(path, true) {
             Err(err) => return Err(err),
             Ok(x) => x
@@ -153,7 +233,7 @@ impl ExtendedPrivateKey {
         ExtendedPublicKey::from_x_priv(self)
     }
 
-    fn derive_from(current: &Self, nodes: &[Node]) -> Result<Self, Error> {
+    fn _derive_from(current: &Self, nodes: &[Node]) -> Result<Self, Error> {
         if nodes.len() == 0 {
             return Ok(current.clone());
         }else{
@@ -163,6 +243,48 @@ impl ExtendedPrivateKey {
             };
             return Self::derive_from(&child, &nodes[1..]);
         }
+    }
+
+    /// Set last four bytes the checksum of the body
+    /// 
+    /// `bytes[78..82] = Sha256(Sha256(bytes[0..78]))[..4]`
+    fn add_checksum(bytes: &mut [u8]) {
+        let mut hasher = Sha256::new();
+        hasher.update(&bytes[0..78]);
+        let hashed = hasher.finalize();
+
+        let mut hasher = Sha256::new();
+        hasher.update(hashed);
+
+        let finalized = hasher.finalize();
+        bytes[78..].copy_from_slice(&finalized[0..4]);
+    }
+
+    /// Overwrite fingerprint
+    /// 
+    /// `bytes[5..9] = Ripemd160(Sha256(bytes[45..78]))`
+    fn update_fingerprint(bytes: &mut [u8]) {
+        let mut hasher = Sha256::new();
+        hasher.update(&bytes[45..78]);
+        let sha256ed = hasher.finalize();
+
+        let mut hasher = Ripemd160::new();
+        hasher.update(&sha256ed);
+        let rip160ed = hasher.finalize();
+        
+        let x = rip160ed.as_slice();
+        bytes[5..9].copy_from_slice(&x[0..4]);
+    }
+
+    /// Overwrite child number
+    /// 
+    /// `bytes[9..12] = child number as u32`
+    #[inline(always)]
+    fn update_childnumber(c: u32, bytes: &mut [u8]){
+        bytes[9] = ((c >> 24) & 0xff) as u8;
+        bytes[10] = ((c >> 16) & 0xff) as u8;
+        bytes[11] = ((c >> 8) & 0xff) as u8;
+        bytes[12] = (c & 0xff) as u8;
     }
 
     fn transform_i_to_k_and_c(&self, i: &[u8; 64]) -> ([u8; 33], [u8; 32]) {
