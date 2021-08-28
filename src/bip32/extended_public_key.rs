@@ -24,14 +24,7 @@ pub struct ExtendedPublicKey {
 
 impl ExtendedPublicKey {
     pub fn to_base58(&self) -> String {
-        let bytes = self.serialize();
-        let checksum = get_checksum(&bytes);
-
-        let mut full_bytes = [0u8; 82];
-        full_bytes[0..78].copy_from_slice(&bytes);
-        full_bytes[78..].copy_from_slice(&checksum);
-
-        full_bytes.to_base58()
+        self.bytes.to_base58()
     }
 
     pub fn from_base58(base58_str: &str) -> Self {
@@ -58,6 +51,8 @@ impl ExtendedPublicKey {
 
         let tmp = ext_priv_key.public_key();
         bytes[45..78].copy_from_slice(&tmp);
+
+        Self::add_checksum(&mut bytes);
 
         ExtendedPublicKey {
             bytes: bytes
@@ -97,6 +92,7 @@ impl ExtendedPublicKey {
         Ok(result)
     }
 
+    /// Derive child at index without checksum
     fn derive_index(index: u32, bytes: &mut [u8]) -> Result<(), Error> {
         if index >= 2147483648 {
             return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
@@ -117,6 +113,9 @@ impl ExtendedPublicKey {
         Ok(())
     }
 
+    /// Set last four bytes the checksum of the body
+    /// 
+    /// `bytes[78..82] = Sha256(Sha256(bytes[0..78]))[..4]`
     fn add_checksum(bytes: &mut [u8]) {
         let mut hasher = Sha256::new();
         hasher.update(&bytes[0..78]);
@@ -129,6 +128,7 @@ impl ExtendedPublicKey {
         bytes[78..].copy_from_slice(&finalized[0..4]);
     }
 
+    /// Add two secp256k1 pubkeys and store sum in `a`
     fn add_pubkeys(a: &mut [u8], b: &[u8]) {
         let point1 = EncodedPoint::from_bytes(&a).unwrap();
         let point1 = ProjectivePoint::from_encoded_point(&point1).unwrap();
@@ -142,6 +142,9 @@ impl ExtendedPublicKey {
         a[0..].copy_from_slice(encoded.as_bytes());
     }
 
+    /// Overwrite fingerprint
+    /// 
+    /// `bytes[5..9] = Ripemd160(Sha256(bytes[45..78]))`
     fn update_fingerprint(bytes: &mut [u8]) {
         let mut hasher = Sha256::new();
         hasher.update(&bytes[45..78]);
@@ -155,12 +158,15 @@ impl ExtendedPublicKey {
         bytes[5..9].copy_from_slice(&x[0..4]);
     }
 
+    /// Overwrite child number
+    /// 
+    /// `bytes[9..12] = child number as u32`
     #[inline(always)]
-    fn update_childnumber(c: u32, data: &mut [u8]){
-        data[9] = ((c >> 24) & 0xff) as u8;
-        data[10] = ((c >> 16) & 0xff) as u8;
-        data[11] = ((c >> 8) & 0xff) as u8;
-        data[12] = (c & 0xff) as u8;
+    fn update_childnumber(c: u32, bytes: &mut [u8]){
+        bytes[9] = ((c >> 24) & 0xff) as u8;
+        bytes[10] = ((c >> 16) & 0xff) as u8;
+        bytes[11] = ((c >> 8) & 0xff) as u8;
+        bytes[12] = (c & 0xff) as u8;
     }
 }
 
