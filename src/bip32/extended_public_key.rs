@@ -27,8 +27,8 @@ impl ExtendedPublicKey {
         self.bytes.to_base58()
     }
 
-    pub fn from_base58(base58_str: &str) -> Self {
-        let bytes = base58_str.from_base58().unwrap();
+    pub fn from_base58<T: AsRef<str>>(base58_str: T) -> Self {
+        let bytes = base58_str.as_ref().from_base58().unwrap();
         ExtendedPublicKey::deserialize(bytes.as_slice()).unwrap()
     }
 
@@ -59,8 +59,8 @@ impl ExtendedPublicKey {
         }
     }
 
-    pub fn derive(&mut self, path: &str) -> Result<Self, Error> {
-        let nodes = match valiidate_path(path, false) {
+    pub fn derive<T: AsRef<str>>(&self, path: T) -> Result<Self, Error> {
+        let nodes = match valiidate_path(path.as_ref(), false) {
             Err(err) => return Err(err),
             Ok(x) => x
         };

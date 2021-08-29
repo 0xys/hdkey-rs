@@ -87,8 +87,8 @@ impl ExtendedPrivateKey {
         Ok(master_key)
     }
 
-    pub fn from_seed_hex(seed_hex_str: &str) -> Result<Self, Error> {
-        let seed = Vec::from_hex(seed_hex_str)?;
+    pub fn from_seed_hex<T: AsRef<str>>(seed_hex_str: T) -> Result<Self, Error> {
+        let seed = Vec::from_hex(seed_hex_str.as_ref())?;
         Self::from_seed(seed.as_slice())
     }
 
@@ -103,8 +103,8 @@ impl ExtendedPrivateKey {
         full_bytes.to_base58()
     }
 
-    pub fn from_base58(base58_str: &str) -> ExtendedPrivateKey {
-        let bytes = base58_str.from_base58().unwrap();
+    pub fn from_base58<T: AsRef<str>>(base58_str: T) -> ExtendedPrivateKey {
+        let bytes = base58_str.as_ref().from_base58().unwrap();
         ExtendedPrivateKey::deserialize(bytes.as_slice()).unwrap()
     }
 
@@ -224,8 +224,8 @@ impl ExtendedPrivateKey {
         Ok(key)
     }
 
-    pub fn _derive(&self, path: &str) -> Result<Self, Error> {
-        let nodes = match valiidate_path(path, true) {
+    pub fn _derive<T: AsRef<str>>(&self, path: T) -> Result<Self, Error> {
+        let nodes = match valiidate_path(path.as_ref(), true) {
             Err(err) => return Err(err),
             Ok(x) => x
         };
