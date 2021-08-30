@@ -58,21 +58,29 @@ impl ExtendedPrivateKey {
         Ok(master_key)
     }
 
+    /// Construct extended private key from seed hex string.
+    /// 
     pub fn from_seed_hex<T: AsRef<str>>(seed_hex_str: T) -> Result<Self, Error> {
         let seed = Vec::from_hex(seed_hex_str.as_ref())?;
         Self::from_seed(seed.as_slice())
     }
 
+    /// Base58-Encode extended private key.
+    ///
     pub fn to_base58(&self) -> String {
         let bytes = self.serialize();
         bytes.to_base58()
     }
 
+    /// Base58-Decode extended private key.
+    ///
     pub fn from_base58<T: AsRef<str>>(base58_str: T) -> ExtendedPrivateKey {
         let bytes = base58_str.as_ref().from_base58().unwrap();
         ExtendedPrivateKey::deserialize(bytes.as_slice()).unwrap()
     }
 
+    /// Derive hardened child node at index. 
+    /// 
     pub fn derive_hardended_child(&self, index: u32) -> Result<Self, Error> {
         let mut bytes = [0u8; 82];
         bytes.copy_from_slice(&self.bytes);
@@ -108,6 +116,8 @@ impl ExtendedPrivateKey {
         Ok(())
     }
 
+    /// Derive child node at index. 
+    /// 
     pub fn derive_child(&self, index: u32) -> Result<Self, Error> {
         let mut bytes = [0u8; 82];
         bytes.copy_from_slice(&self.bytes);
@@ -142,6 +152,8 @@ impl ExtendedPrivateKey {
         Ok(())
     }
 
+    /// Derive child node by path from current node.
+    /// 
     pub fn derive<T: AsRef<str>>(&self, path: T) -> Result<Self, Error> {
         let nodes = match valiidate_path(path.as_ref(), true) {
             Err(err) => return Err(err),
@@ -175,6 +187,8 @@ impl ExtendedPrivateKey {
         Ok(())
     }
 
+    /// Construct extended public key from current node.
+    /// 
     pub fn to_xpub(&self) -> ExtendedPublicKey {
         ExtendedPublicKey::from_xprv(self)
     }

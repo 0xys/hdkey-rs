@@ -32,15 +32,21 @@ const RANGE_PUBLIC_KEY: std::ops::Range<usize> = 45..78;
 const RANGE_CHECKSUM: std::ops::Range<usize> = 78..82;
 
 impl ExtendedPublicKey {
+    /// Base58-Encode extended public key.
+    /// 
     pub fn to_base58(&self) -> String {
         self.bytes.to_base58()
     }
 
+    /// Base58-Decode extended public key.
+    /// 
     pub fn from_base58<T: AsRef<str>>(base58_str: T) -> Self {
         let bytes = base58_str.as_ref().from_base58().unwrap();
         ExtendedPublicKey::deserialize(bytes.as_slice()).unwrap()
     }
 
+    /// Construct extended public key from extended private key.
+    /// 
     pub fn from_xprv(xprv: &ExtendedPrivateKey) -> Self {
         let mut bytes = [0u8; 82];
         
@@ -56,6 +62,8 @@ impl ExtendedPublicKey {
         }
     }
 
+    /// Derive child node by path from current node.
+    /// 
     pub fn derive<T: AsRef<str>>(&self, path: T) -> Result<Self, Error> {       
         let nodes = match valiidate_path(path.as_ref(), false) {
             Err(err) => return Err(err),
@@ -83,6 +91,8 @@ impl ExtendedPublicKey {
         Ok(())
     }
 
+    /// Derive child node at index. 
+    /// 
     pub fn derive_child(&self, index: u32) -> Result<Self, Error> {
         let mut bytes = [0u8; 82];
         bytes.copy_from_slice(&self.bytes);
@@ -96,7 +106,7 @@ impl ExtendedPublicKey {
         Ok(result)
     }
 
-    /// Derive child at index without checksum
+    /// Derive child node at index without checksum
     fn _derive_child(index: u32, bytes: &mut [u8]) -> Result<(), Error> {
         if index >= 2147483648 {
             return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
