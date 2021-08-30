@@ -89,7 +89,7 @@ impl ExtendedPrivateKey {
         bytes.copy_from_slice(&self.bytes);
 
         Self::_derive_hardened_child(index, &mut bytes)?;
-        Self::add_checksum(&mut bytes);
+        Self::_add_checksum(&mut bytes);
         let key = ExtendedPrivateKey {
             bytes
         };
@@ -105,8 +105,8 @@ impl ExtendedPrivateKey {
         let index = index + 2147483648;
 
         bytes[4] += 1; // increment depth
-        Self::update_childnumber(index, bytes);
-        Self::update_fingerprint(bytes);
+        Self::_update_childnumber(index, bytes);
+        Self::_update_fingerprint(bytes);
         
         let mut data = vec![0u8;37];
         data[1..33].copy_from_slice(&bytes[RANGE_PRIVATE_KEY]);
@@ -114,7 +114,7 @@ impl ExtendedPrivateKey {
 
         let i = HMAC::mac(data, &bytes[RANGE_CHAIN_CODE]);
         bytes[RANGE_CHAIN_CODE].copy_from_slice(&i[32..]);
-        Self::add_scalar_be(&mut bytes[RANGE_PRIVATE_KEY], &i[..32]);
+        Self::_add_scalar_be(&mut bytes[RANGE_PRIVATE_KEY], &i[..32]);
 
         Ok(())
     }
@@ -124,7 +124,7 @@ impl ExtendedPrivateKey {
         bytes.copy_from_slice(&self.bytes);
 
         Self::_derive_child(index, &mut bytes)?;
-        Self::add_checksum(&mut bytes);
+        Self::_add_checksum(&mut bytes);
 
         let key = ExtendedPrivateKey {
             bytes
@@ -138,8 +138,8 @@ impl ExtendedPrivateKey {
         }
 
         bytes[4] += 1; // increment depth
-        Self::update_childnumber(index, bytes);
-        Self::update_fingerprint(bytes);
+        Self::_update_childnumber(index, bytes);
+        Self::_update_fingerprint(bytes);
 
         let mut data = vec![0u8;37];
         let sk = SigningKey::from_bytes(&bytes[RANGE_PRIVATE_KEY]).unwrap();
@@ -148,22 +148,22 @@ impl ExtendedPrivateKey {
 
         let i = HMAC::mac(data, &bytes[RANGE_CHAIN_CODE]);
         bytes[RANGE_CHAIN_CODE].copy_from_slice(&i[32..]);
-        Self::add_scalar_be(&mut bytes[RANGE_PRIVATE_KEY], &i[..32]);
+        Self::_add_scalar_be(&mut bytes[RANGE_PRIVATE_KEY], &i[..32]);
 
         Ok(())
     }
 
     pub fn derive<T: AsRef<str>>(&self, path: T) -> Result<Self, Error> {
-        let mut bytes = [0u8; 82];
-        bytes.copy_from_slice(&self.bytes);
-
         let nodes = match valiidate_path(path.as_ref(), true) {
             Err(err) => return Err(err),
             Ok(x) => x
         };
 
+        let mut bytes = [0u8; 82];
+        bytes.copy_from_slice(&self.bytes);
+
         Self::_derive(&nodes, &mut bytes)?;
-        Self::add_checksum(&mut bytes);
+        Self::_add_checksum(&mut bytes);
 
         let key = ExtendedPrivateKey {
             bytes
@@ -187,13 +187,13 @@ impl ExtendedPrivateKey {
     }
 
     pub fn to_xpub(&self) -> ExtendedPublicKey {
-        ExtendedPublicKey::from_x_prv(self)
+        ExtendedPublicKey::from_xprv(self)
     }
 
     /// Set last four bytes the checksum of the body
     /// 
     /// `bytes[78..82] = Sha256(Sha256(bytes[0..78]))[..4]`
-    fn add_checksum(bytes: &mut [u8]) {
+    fn _add_checksum(bytes: &mut [u8]) {
         let mut hasher = Sha256::new();
         hasher.update(&bytes[0..78]);
         let hashed = hasher.finalize();
@@ -208,7 +208,7 @@ impl ExtendedPrivateKey {
     /// Overwrite fingerprint
     /// 
     /// `bytes[5..9] = Ripemd160(Sha256(bytes[pubkey(self)]))[..4]`
-    fn update_fingerprint(bytes: &mut [u8]) {
+    fn _update_fingerprint(bytes: &mut [u8]) {
         let sk = SigningKey::from_bytes(&bytes[RANGE_PRIVATE_KEY]).unwrap();
         let mut hasher = Sha256::new();
         hasher.update(&sk.verify_key().to_bytes());
@@ -223,7 +223,7 @@ impl ExtendedPrivateKey {
     }
 
     /// add two scalars, each represented by u8 array in big-endian format. 
-    fn add_scalar_be(a: &mut [u8], b: &[u8]) {
+    fn _add_scalar_be(a: &mut [u8], b: &[u8]) {
         let lhs = Scalar::from_bytes_reduced(GenericArray::from_slice(a));
         let rhs = Scalar::from_bytes_reduced(GenericArray::from_slice(b));
         let sum = lhs.add(rhs).to_bytes();
@@ -234,7 +234,7 @@ impl ExtendedPrivateKey {
     /// 
     /// `bytes[9..12] = child number as u32`
     #[inline(always)]
-    fn update_childnumber(c: u32, bytes: &mut [u8]){
+    fn _update_childnumber(c: u32, bytes: &mut [u8]){
         bytes[9] = ((c >> 24) & 0xff) as u8;
         bytes[10] = ((c >> 16) & 0xff) as u8;
         bytes[11] = ((c >> 8) & 0xff) as u8;
@@ -287,7 +287,6 @@ impl Deserialize<&[u8], Error> for ExtendedPrivateKey {
 #[cfg(test)]
 mod tests {
     use crate::bip32::extended_private_key::ExtendedPrivateKey;
-    use crate::serializer::{Serialize, Deserialize};
 
     #[test]
     fn test_xpriv_base58() {
