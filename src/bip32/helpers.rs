@@ -1,4 +1,4 @@
-use crate::error::{Error, PathError, SeedError};
+use crate::error::{Error, PathError};
 
 pub struct Node {
     pub index: u32,
