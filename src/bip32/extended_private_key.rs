@@ -81,7 +81,7 @@ impl ExtendedPrivateKey {
 
     /// Derive hardened child node at index. 
     /// 
-    pub fn derive_hardended_child(&self, index: u32) -> Result<Self, Error> {
+    pub fn derive_hardened_child(&self, index: u32) -> Result<Self, Error> {
         let mut bytes = [0u8; 82];
         bytes.copy_from_slice(&self.bytes);
 
