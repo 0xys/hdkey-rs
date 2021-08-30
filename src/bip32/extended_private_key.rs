@@ -15,11 +15,8 @@ use crate::error::{Error, PathError, SeedError, DeserializationError};
 use crate::serializer::{Serialize, Deserialize};
 use crate::bip32::extended_public_key::{ExtendedPublicKey};
 use crate::bip32::checksum::{get_checksum, verify_checksum};
-use crate::bip32::helpers::{split_i};
 use crate::bip32::helpers::{Node, valiidate_path};
 use crate::bip32::version::{Version, KeyType};
-use crate::bip32::fingerprint::{Fingerprint};
-use crate::bip32::child_number::{ChildNumber};
 
 #[derive(Debug, Clone)]
 pub struct ExtendedPrivateKey {
@@ -41,21 +38,6 @@ const RANGE_PRIVATE_KEY: std::ops::Range<usize> = 46..78;
 const RANGE_CHECKSUM: std::ops::Range<usize> = 78..82;
 
 impl ExtendedPrivateKey {
-    // pub fn version(&self) -> &Version {
-    //     &self.version
-    // }
-    // pub fn depth(&self) -> &u8 {
-    //     &self.depth
-    // }
-    // pub fn fingerprint(&self) -> &Fingerprint {
-    //     &self.fingerprint
-    // }
-    // pub fn child_number(&self) -> &ChildNumber {
-    //     &self.child_number
-    // }
-    // pub fn chain_code(&self) -> &[u8;32] {
-    //     &self.chain_code
-    // }
 
     /// generate master private key from seed.
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#master-key-generation
@@ -75,12 +57,6 @@ impl ExtendedPrivateKey {
         bytes[RANGE_VERSION].copy_from_slice(&v.serialize());
 
         let master_key = ExtendedPrivateKey {
-            // version: Version::MainNet(KeyType::Private),
-            // depth: 0x00,
-            // fingerprint: Fingerprint([0x00, 0x00, 0x00, 0x00]),
-            // child_number: ChildNumber([0x00, 0x00, 0x00, 0x00]),
-            // k: k,
-            // chain_code: c,
             bytes
         };
 
@@ -108,7 +84,19 @@ impl ExtendedPrivateKey {
         ExtendedPrivateKey::deserialize(bytes.as_slice()).unwrap()
     }
 
-    pub fn derive_hardended_child(&mut self, index: u32) -> Result<Self, Error> {
+    pub fn derive_hardended_child(&self, index: u32) -> Result<Self, Error> {
+        let mut bytes = [0u8; 82];
+        bytes.copy_from_slice(&self.bytes);
+
+        Self::_derive_hardened_child(index, &mut bytes)?;
+        Self::add_checksum(&mut bytes);
+        let key = ExtendedPrivateKey {
+            bytes
+        };
+        Ok(key)
+    }
+
+    fn _derive_hardened_child(index: u32, bytes: &mut [u8]) -> Result<(), Error> {
         if index >= 2147483648 {
             return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
@@ -116,143 +104,86 @@ impl ExtendedPrivateKey {
         // for hardened index.
         let index = index + 2147483648;
 
-        self.bytes[4] += 1; // increment depth
-        Self::update_childnumber(index, &mut self.bytes);
-        Self::update_fingerprint(&mut self.bytes);
+        bytes[4] += 1; // increment depth
+        Self::update_childnumber(index, bytes);
+        Self::update_fingerprint(bytes);
         
         let mut data = vec![0u8;37];
-        data[1..33].copy_from_slice(&self.bytes[RANGE_PRIVATE_KEY]);
-        data[33..].copy_from_slice(&self.bytes[RANGE_CHILD_NUMBER]);
+        data[1..33].copy_from_slice(&bytes[RANGE_PRIVATE_KEY]);
+        data[33..].copy_from_slice(&bytes[RANGE_CHILD_NUMBER]);
 
-        let i = HMAC::mac(data, &self.bytes[RANGE_CHAIN_CODE]);
-        self.bytes[RANGE_CHAIN_CODE].copy_from_slice(&i[32..]);
-        add_scalar_be(&mut self.bytes[RANGE_PRIVATE_KEY], &i[..32]);
+        let i = HMAC::mac(data, &bytes[RANGE_CHAIN_CODE]);
+        bytes[RANGE_CHAIN_CODE].copy_from_slice(&i[32..]);
+        Self::add_scalar_be(&mut bytes[RANGE_PRIVATE_KEY], &i[..32]);
 
-        Self::add_checksum(&mut self.bytes);
+        Ok(())
+    }
 
+    pub fn derive_child(&self, index: u32) -> Result<Self, Error> {
         let mut bytes = [0u8; 82];
         bytes.copy_from_slice(&self.bytes);
+
+        Self::_derive_child(index, &mut bytes)?;
+        Self::add_checksum(&mut bytes);
+
         let key = ExtendedPrivateKey {
-            // version: self.version,
-            // depth: self.depth + 1,
-            // fingerprint: Fingerprint::from_xpriv(&self),
-            // child_number: ChildNumber::from_u32(index),
-            // k: k,
-            // chain_code: c,
             bytes
-            
         };
         Ok(key)
     }
 
-
-
-    /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
-    // pub fn _derive_hardended_child(&self, index: u32) -> Result<Self, Error> {
-    //     if index >= 2147483648 {
-    //         return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
-    //     }
-
-    //     // for hardened index.
-    //     let index = index + 2147483648;
-        
-    //     let mut data = vec![0u8;37];
-    //     data[1..33].copy_from_slice(&self.private_key());
-    //     data[33..].copy_from_slice(&ChildNumber::from_u32(index).0[..]);
-
-    //     let i = HMAC::mac(data, self.chain_code);
-    //     let (k, c) = self.transform_i_to_k_and_c(&i);
-
-    //     let key = ExtendedPrivateKey {
-    //         version: self.version,
-    //         depth: self.depth + 1,
-    //         fingerprint: Fingerprint::from_xpriv(&self),
-    //         child_number: ChildNumber::from_u32(index),
-    //         k: k,
-    //         chain_code: c
-    //     };
-    //     Ok(key)
-    // }
-
-    pub fn derive_child(&mut self, index: u32) -> Result<Self, Error> {
+    fn _derive_child(index: u32, bytes: &mut [u8]) -> Result<(), Error> {
         if index >= 2147483648 {
             return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
 
-        self.bytes[4] += 1; // increment depth
-        Self::update_childnumber(index, &mut self.bytes);
-        Self::update_fingerprint(&mut self.bytes);
+        bytes[4] += 1; // increment depth
+        Self::update_childnumber(index, bytes);
+        Self::update_fingerprint(bytes);
 
         let mut data = vec![0u8;37];
-        let sk = SigningKey::from_bytes(&self.bytes[RANGE_PRIVATE_KEY]).unwrap();
+        let sk = SigningKey::from_bytes(&bytes[RANGE_PRIVATE_KEY]).unwrap();
         data[0..33].copy_from_slice(&sk.verify_key().to_bytes());
-        data[33..].copy_from_slice(&self.bytes[RANGE_CHILD_NUMBER]);
+        data[33..].copy_from_slice(&bytes[RANGE_CHILD_NUMBER]);
 
-        let i = HMAC::mac(data, &self.bytes[RANGE_CHAIN_CODE]);
-        self.bytes[RANGE_CHAIN_CODE].copy_from_slice(&i[32..]);
-        add_scalar_be(&mut self.bytes[RANGE_PRIVATE_KEY], &i[..32]);
+        let i = HMAC::mac(data, &bytes[RANGE_CHAIN_CODE]);
+        bytes[RANGE_CHAIN_CODE].copy_from_slice(&i[32..]);
+        Self::add_scalar_be(&mut bytes[RANGE_PRIVATE_KEY], &i[..32]);
 
-        Self::add_checksum(&mut self.bytes);
-
-        let mut bytes = [0u8; 82];
-        bytes.copy_from_slice(&self.bytes);
-        let key = ExtendedPrivateKey {
-            // version: self.version,
-            // depth: self.depth + 1,
-            // fingerprint: Fingerprint::from_xpriv(&self),
-            // child_number: ChildNumber::from_u32(index),
-            // k: k,
-            // chain_code: c,
-            bytes
-        };
-        Ok(key)
+        Ok(())
     }
 
-    /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
-    // pub fn _derive_child(&self, index: u32) -> Result<Self, Error> {
-    //     if index >= 2147483648 {
-    //         return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
-    //     }
-        
-    //     let mut data = vec![0u8;37];
-    //     data[0..33].copy_from_slice(&self.public_key());
-    //     data[33..].copy_from_slice(&ChildNumber::from_u32(index).0[..]);
+    pub fn derive<T: AsRef<str>>(&self, path: T) -> Result<Self, Error> {
+        let mut bytes = [0u8; 82];
+        bytes.copy_from_slice(&self.bytes);
 
-    //     let i = HMAC::mac(data, self.chain_code);
-    //     let (k, c) = self.transform_i_to_k_and_c(&i);
-
-    //     let key = ExtendedPrivateKey {
-    //         version: self.version,
-    //         depth: self.depth + 1,
-    //         fingerprint: Fingerprint::from_xpriv(&self),
-    //         child_number: ChildNumber::from_u32(index),
-    //         k: k,
-    //         chain_code: c
-    //     };
-    //     Ok(key)
-    // }
-
-    pub fn derive<T: AsRef<str>>(&mut self, path: T) -> Result<Self, Error> {
         let nodes = match valiidate_path(path.as_ref(), true) {
             Err(err) => return Err(err),
             Ok(x) => x
         };
 
-        self.derive_from(&nodes)
+        Self::_derive(&nodes, &mut bytes)?;
+        Self::add_checksum(&mut bytes);
+
+        let key = ExtendedPrivateKey {
+            bytes
+        };
+        Ok(key)
     }
 
-    fn derive_from(&mut self, nodes: &[Node]) -> Result<Self, Error> {
+    fn _derive(nodes: &[Node], bytes: &mut [u8]) -> Result<(), Error> {
         if nodes.len() == 0 {
-            return Ok(ExtendedPrivateKey{
-                bytes: self.bytes
-            });
-        }else{
-            let child = match nodes[0].hardened {
-                false => self.derive_child(nodes[0].index)?,
-                true => self.derive_hardended_child(nodes[0].index)?,
-            };
-            return Self::derive_from(self, &nodes[1..]);
+            return Ok(());
         }
+        
+        if nodes[0].hardened {
+            Self::_derive_hardened_child(nodes[0].index, bytes)?;
+        }else{
+            Self::_derive_child(nodes[0].index, bytes)?;
+        }
+
+        Self::_derive(&nodes[1..], bytes)?;
+        Ok(())
     }
 
     pub fn to_x_pub(&self) -> ExtendedPublicKey {
@@ -291,6 +222,14 @@ impl ExtendedPrivateKey {
         bytes[RANGE_FINGERPRINT].copy_from_slice(&x[0..4]);
     }
 
+    /// add two scalars, each represented by u8 array in big-endian format. 
+    fn add_scalar_be(a: &mut [u8], b: &[u8]) {
+        let lhs = Scalar::from_bytes_reduced(GenericArray::from_slice(a));
+        let rhs = Scalar::from_bytes_reduced(GenericArray::from_slice(b));
+        let sum = lhs.add(rhs).to_bytes();
+        a.copy_from_slice(sum.as_slice());
+    }
+
     /// Overwrite child number
     /// 
     /// `bytes[9..12] = child number as u32`
@@ -301,19 +240,6 @@ impl ExtendedPrivateKey {
         bytes[11] = ((c >> 8) & 0xff) as u8;
         bytes[12] = (c & 0xff) as u8;
     }
-
-    // fn transform_i_to_k_and_c(&self, i: &[u8; 64]) -> ([u8; 33], [u8; 32]) {
-    //     let (i_left, i_right) = split_i(&i);
-    
-    //     let u8vec = add_scalar_be(&self.private_key(), &i_left);
-    
-    //     let mut k = [0u8; 33];
-    //     let mut k_vec = vec![0u8;33];
-    //     k_vec[1..33].copy_from_slice(&u8vec);
-    //     k.copy_from_slice(k_vec.as_slice());
-
-    //     (k, i_right)
-    // }
 }
 
 impl PublicKey for ExtendedPrivateKey {
@@ -329,27 +255,6 @@ impl PrivateKey for ExtendedPrivateKey {
         k.copy_from_slice(&self.bytes[RANGE_PRIVATE_KEY]);
         k
     }
-}
-
-fn transform_master_i_to_k_and_c(i: &[u8; 64]) -> ([u8; 33], [u8; 32]) {
-    let mut c = [0u8; 32];
-    c.copy_from_slice(&i[32..]);
-
-    let mut tmp = vec![0u8;33];
-    tmp[1..].copy_from_slice(&i[..32]);
-    
-    let mut k = [0u8;33];
-    k.copy_from_slice(tmp.as_slice());
-
-    (k, c)
-}
-
-/// add two scalars, each represented by u8 array in big-endian format. 
-fn add_scalar_be(a: &mut [u8], b: &[u8]) {
-    let lhs = Scalar::from_bytes_reduced(GenericArray::from_slice(a));
-    let rhs = Scalar::from_bytes_reduced(GenericArray::from_slice(b));
-    let sum = lhs.add(rhs).to_bytes();
-    a.copy_from_slice(sum.as_slice());
 }
 
 impl Serialize<[u8; 78]> for ExtendedPrivateKey {
