@@ -16,6 +16,7 @@ use crate::serializer::{Serialize, Deserialize};
 use crate::bip32::extended_private_key::ExtendedPrivateKey;
 use crate::bip32::checksum::{get_checksum, verify_checksum};
 use crate::bip32::helpers::{Node, valiidate_path};
+use crate::bip32::version::Version;
 
 #[derive(Debug, Clone)]
 pub struct ExtendedPublicKey {
@@ -43,7 +44,9 @@ impl ExtendedPublicKey {
     pub fn from_x_priv(xprv: &ExtendedPrivateKey) -> Self {
         let mut bytes = [0u8; 82];
         
-        bytes[RANGE_VERSION].copy_from_slice(&xprv.bytes[RANGE_VERSION]);
+        let version = Version::deserialize(&xprv.bytes[RANGE_VERSION]).unwrap();
+
+        bytes[RANGE_VERSION].copy_from_slice(&version.to_pub().serialize());
         bytes[4] = xprv.bytes[4];
         bytes[RANGE_FINGERPRINT].copy_from_slice(&xprv.bytes[RANGE_FINGERPRINT]);
         bytes[RANGE_CHILD_NUMBER].copy_from_slice(&xprv.bytes[RANGE_CHILD_NUMBER]);

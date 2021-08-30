@@ -174,9 +174,9 @@ impl ExtendedPrivateKey {
             return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
 
-        Self::update_fingerprint(&mut self.bytes);
         Self::update_childnumber(index, &mut self.bytes);
-        
+        Self::update_fingerprint(&mut self.bytes);
+
         let mut data = vec![0u8;37];
         let sk = SigningKey::from_bytes(&self.private_key()).unwrap();
         data[0..33].copy_from_slice(&sk.verify_key().to_bytes());
@@ -224,30 +224,32 @@ impl ExtendedPrivateKey {
     //     Ok(key)
     // }
 
-    // pub fn _derive<T: AsRef<str>>(&self, path: T) -> Result<Self, Error> {
-    //     let nodes = match valiidate_path(path.as_ref(), true) {
-    //         Err(err) => return Err(err),
-    //         Ok(x) => x
-    //     };
+    pub fn derive<T: AsRef<str>>(&mut self, path: T) -> Result<Self, Error> {
+        let nodes = match valiidate_path(path.as_ref(), true) {
+            Err(err) => return Err(err),
+            Ok(x) => x
+        };
 
-    //     Self::derive_from(&self, &nodes)
-    // }
+        self.derive_from(&nodes)
+    }
+
+    fn derive_from(&mut self, nodes: &[Node]) -> Result<Self, Error> {
+        if nodes.len() == 0 {
+            return Ok(ExtendedPrivateKey{
+                bytes: self.bytes
+            });
+        }else{
+            let child = match nodes[0].hardened {
+                false => self.derive_child(nodes[0].index)?,
+                true => self.derive_hardended_child(nodes[0].index)?,
+            };
+            return Self::derive_from(self, &nodes[1..]);
+        }
+    }
 
     pub fn to_x_pub(&self) -> ExtendedPublicKey {
         ExtendedPublicKey::from_x_priv(self)
     }
-
-    // fn _derive_from(current: &Self, nodes: &[Node]) -> Result<Self, Error> {
-    //     if nodes.len() == 0 {
-    //         return Ok(current.clone());
-    //     }else{
-    //         let child = match nodes[0].hardened {
-    //             false => current.derive_child(nodes[0].index)?,
-    //             true => current.derive_hardended_child(nodes[0].index)?,
-    //         };
-    //         return Self::derive_from(&child, &nodes[1..]);
-    //     }
-    // }
 
     /// Set last four bytes the checksum of the body
     /// 
@@ -261,15 +263,16 @@ impl ExtendedPrivateKey {
         hasher.update(hashed);
 
         let finalized = hasher.finalize();
-        bytes[78..].copy_from_slice(&finalized[0..4]);
+        bytes[RANGE_CHECKSUM].copy_from_slice(&finalized[0..4]);
     }
 
     /// Overwrite fingerprint
     /// 
-    /// `bytes[5..9] = Ripemd160(Sha256(bytes[45..78]))`
+    /// `bytes[5..9] = Ripemd160(Sha256(bytes[pubkey(self)]))[..4]`
     fn update_fingerprint(bytes: &mut [u8]) {
+        let sk = SigningKey::from_bytes(&bytes[RANGE_PRIVATE_KEY]).unwrap();
         let mut hasher = Sha256::new();
-        hasher.update(&bytes[45..78]);
+        hasher.update(&sk.verify_key().to_bytes());
         let sha256ed = hasher.finalize();
 
         let mut hasher = Ripemd160::new();
@@ -277,7 +280,7 @@ impl ExtendedPrivateKey {
         let rip160ed = hasher.finalize();
         
         let x = rip160ed.as_slice();
-        bytes[5..9].copy_from_slice(&x[0..4]);
+        bytes[RANGE_FINGERPRINT].copy_from_slice(&x[0..4]);
     }
 
     /// Overwrite child number
