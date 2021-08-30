@@ -47,10 +47,7 @@ impl ExtendedPublicKey {
         let version = Version::deserialize(&xprv.bytes[RANGE_VERSION]).unwrap();
 
         bytes[RANGE_VERSION].copy_from_slice(&version.to_pub().serialize());
-        bytes[4] = xprv.bytes[4];
-        bytes[RANGE_FINGERPRINT].copy_from_slice(&xprv.bytes[RANGE_FINGERPRINT]);
-        bytes[RANGE_CHILD_NUMBER].copy_from_slice(&xprv.bytes[RANGE_CHILD_NUMBER]);
-        bytes[RANGE_CHAIN_CODE].copy_from_slice(&xprv.bytes[RANGE_CHAIN_CODE]);
+        bytes[4..45].copy_from_slice(&xprv.bytes[4..45]);
         bytes[RANGE_PUBLIC_KEY].copy_from_slice(&xprv.public_key());
         Self::_add_checksum(&mut bytes);
 
@@ -185,11 +182,9 @@ impl PublicKey for ExtendedPublicKey {
     }
 }
 
-impl Serialize<[u8; 78]> for ExtendedPublicKey {
-    fn serialize(&self) -> [u8; 78] {
-        let mut result = [0u8; 78];
-        result.copy_from_slice(&self.bytes[0..78]);
-        result
+impl Serialize<[u8; 82]> for ExtendedPublicKey {
+    fn serialize(&self) -> [u8; 82] {
+        self.bytes
     }
 }
 

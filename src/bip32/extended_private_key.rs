@@ -49,6 +49,7 @@ impl ExtendedPrivateKey {
 
         let v = Version::MainNet(KeyType::Private);
         bytes[RANGE_VERSION].copy_from_slice(&v.serialize());
+        Self::_add_checksum(&mut bytes);
 
         let master_key = ExtendedPrivateKey {
             bytes
@@ -64,13 +65,7 @@ impl ExtendedPrivateKey {
 
     pub fn to_base58(&self) -> String {
         let bytes = self.serialize();
-        let checksum = get_checksum(&bytes);
-
-        let mut full_bytes = [0u8; 82];
-        full_bytes[0..78].copy_from_slice(&bytes);
-        full_bytes[78..].copy_from_slice(&checksum);
-
-        full_bytes.to_base58()
+        bytes.to_base58()
     }
 
     pub fn from_base58<T: AsRef<str>>(base58_str: T) -> ExtendedPrivateKey {
@@ -251,11 +246,9 @@ impl PrivateKey for ExtendedPrivateKey {
     }
 }
 
-impl Serialize<[u8; 78]> for ExtendedPrivateKey {
-    fn serialize(&self) -> [u8; 78] {
-        let mut bytes = [0u8; 78];
-        bytes.copy_from_slice(&self.bytes[0..78]);
-        bytes
+impl Serialize<[u8; 82]> for ExtendedPrivateKey {
+    fn serialize(&self) -> [u8; 82] {
+        self.bytes
     }
 }
 
