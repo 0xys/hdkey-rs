@@ -145,6 +145,8 @@ impl ExtendedPrivateKey {
         Ok(key)
     }
 
+
+
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
     // pub fn _derive_hardended_child(&self, index: u32) -> Result<Self, Error> {
     //     if index >= 2147483648 {
@@ -385,13 +387,7 @@ mod tests {
     #[test]
     fn test_xpriv_base58() {
         let bs58 = "xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjANTtpgP4mLTj34bhnZX7UiM";
-        let mut xprv = ExtendedPrivateKey::from_base58(bs58);
-        println!("{:?}", xprv.serialize());
-        // assert_eq!(bs58, "");
-        // assert_eq!(bs58, xprv.to_base58());
-        let xprv = xprv.derive_child(0).unwrap();
-        println!("{:?}", xprv.serialize());
-        assert_eq!(bs58, "");
-
+        let xprv = ExtendedPrivateKey::from_base58(bs58);
+        assert_eq!(bs58, xprv.to_base58());
     }
 }
