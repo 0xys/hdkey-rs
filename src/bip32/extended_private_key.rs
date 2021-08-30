@@ -14,7 +14,7 @@ use crate::keys::{PublicKey, PrivateKey};
 use crate::error::{Error, PathError, SeedError, DeserializationError};
 use crate::serializer::{Serialize, Deserialize};
 use crate::bip32::extended_public_key::{ExtendedPublicKey};
-use crate::bip32::checksum::{get_checksum, verify_checksum};
+use crate::bip32::checksum::verify_checksum;
 use crate::bip32::helpers::{Node, valiidate_path};
 use crate::bip32::version::{Version, KeyType};
 

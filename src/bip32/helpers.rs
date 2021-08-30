@@ -1,15 +1,5 @@
 use crate::error::{Error, PathError, SeedError};
 
-pub fn split_i(i: &[u8; 64]) -> ([u8; 32], [u8; 32]) {
-    let mut i_right = [0u8; 32];
-    i_right.copy_from_slice(&i[32..]);
-
-    let mut i_left = [0u8; 32];
-    i_left.copy_from_slice(&i[0..32]);
-
-    (i_left, i_right)
-}
-
 pub struct Node {
     pub index: u32,
     pub hardened: bool
