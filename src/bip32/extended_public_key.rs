@@ -98,7 +98,7 @@ impl ExtendedPublicKey {
             return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
 
-        bytes[4] += 1; // increment depth        
+        bytes[4] += 1; // increment depth
         Self::update_fingerprint(bytes);
         Self::update_childnumber(index, bytes);
 

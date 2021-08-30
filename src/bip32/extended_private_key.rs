@@ -116,8 +116,9 @@ impl ExtendedPrivateKey {
         // for hardened index.
         let index = index + 2147483648;
 
-        Self::update_fingerprint(&mut self.bytes);
+        self.bytes[4] += 1; // increment depth
         Self::update_childnumber(index, &mut self.bytes);
+        Self::update_fingerprint(&mut self.bytes);
         
         let mut data = vec![0u8;37];
         data[1..33].copy_from_slice(&self.bytes[RANGE_PRIVATE_KEY]);
@@ -129,6 +130,8 @@ impl ExtendedPrivateKey {
 
         Self::add_checksum(&mut self.bytes);
 
+        let mut bytes = [0u8; 82];
+        bytes.copy_from_slice(&self.bytes);
         let key = ExtendedPrivateKey {
             // version: self.version,
             // depth: self.depth + 1,
@@ -136,7 +139,7 @@ impl ExtendedPrivateKey {
             // child_number: ChildNumber::from_u32(index),
             // k: k,
             // chain_code: c,
-            bytes: self.bytes
+            bytes
             
         };
         Ok(key)
@@ -174,11 +177,12 @@ impl ExtendedPrivateKey {
             return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
 
+        self.bytes[4] += 1; // increment depth
         Self::update_childnumber(index, &mut self.bytes);
         Self::update_fingerprint(&mut self.bytes);
 
         let mut data = vec![0u8;37];
-        let sk = SigningKey::from_bytes(&self.private_key()).unwrap();
+        let sk = SigningKey::from_bytes(&self.bytes[RANGE_PRIVATE_KEY]).unwrap();
         data[0..33].copy_from_slice(&sk.verify_key().to_bytes());
         data[33..].copy_from_slice(&self.bytes[RANGE_CHILD_NUMBER]);
 
@@ -188,6 +192,8 @@ impl ExtendedPrivateKey {
 
         Self::add_checksum(&mut self.bytes);
 
+        let mut bytes = [0u8; 82];
+        bytes.copy_from_slice(&self.bytes);
         let key = ExtendedPrivateKey {
             // version: self.version,
             // depth: self.depth + 1,
@@ -195,7 +201,7 @@ impl ExtendedPrivateKey {
             // child_number: ChildNumber::from_u32(index),
             // k: k,
             // chain_code: c,
-            bytes: self.bytes
+            bytes
         };
         Ok(key)
     }
@@ -374,11 +380,18 @@ impl Deserialize<&[u8], Error> for ExtendedPrivateKey {
 #[cfg(test)]
 mod tests {
     use crate::bip32::extended_private_key::ExtendedPrivateKey;
+    use crate::serializer::{Serialize, Deserialize};
 
     #[test]
     fn test_xpriv_base58() {
         let bs58 = "xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjANTtpgP4mLTj34bhnZX7UiM";
-        let xpub = ExtendedPrivateKey::from_base58(bs58);
-        assert_eq!(bs58, xpub.to_base58());
+        let mut xprv = ExtendedPrivateKey::from_base58(bs58);
+        println!("{:?}", xprv.serialize());
+        // assert_eq!(bs58, "");
+        // assert_eq!(bs58, xprv.to_base58());
+        let xprv = xprv.derive_child(0).unwrap();
+        println!("{:?}", xprv.serialize());
+        assert_eq!(bs58, "");
+
     }
 }
