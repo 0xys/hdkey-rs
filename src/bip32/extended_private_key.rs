@@ -20,12 +20,6 @@ use crate::bip32::version::{Version, KeyType};
 
 #[derive(Debug, Clone)]
 pub struct ExtendedPrivateKey {
-    // version: Version,
-    // depth: u8,
-    // fingerprint: Fingerprint,
-    // child_number: ChildNumber,
-    // chain_code: [u8;32],
-    // k: [u8;33],
     pub bytes: [u8; 82]
 }
 
