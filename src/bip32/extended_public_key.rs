@@ -41,7 +41,7 @@ impl ExtendedPublicKey {
         ExtendedPublicKey::deserialize(bytes.as_slice()).unwrap()
     }
 
-    pub fn from_x_priv(xprv: &ExtendedPrivateKey) -> Self {
+    pub fn from_x_prv(xprv: &ExtendedPrivateKey) -> Self {
         let mut bytes = [0u8; 82];
         
         let version = Version::deserialize(&xprv.bytes[RANGE_VERSION]).unwrap();
@@ -223,8 +223,8 @@ mod tests {
         let seed_hex_str = "000102030405060708090a0b0c0d0e0f";
 
         let xpriv = ExtendedPrivateKey::from_seed_hex(seed_hex_str).unwrap();
-        let xpub_0 = xpriv.to_x_pub();
-        let xpub_1 = ExtendedPublicKey::from_x_priv(&xpriv);
+        let xpub_0 = xpriv.to_xpub();
+        let xpub_1 = ExtendedPublicKey::from_x_prv(&xpriv);
 
         // xpub_0
         let bs58 = xpub_0.to_base58();
@@ -240,8 +240,8 @@ mod tests {
         let seed_hex_str = "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542";
 
         let xpriv = ExtendedPrivateKey::from_seed_hex(seed_hex_str).unwrap();
-        let mut xpub_0 = xpriv.to_x_pub();
-        let mut xpub_1 = ExtendedPublicKey::from_x_priv(&xpriv);
+        let mut xpub_0 = xpriv.to_xpub();
+        let mut xpub_1 = ExtendedPublicKey::from_x_prv(&xpriv);
 
         let xpub_0 = xpub_0.derive("m/0").unwrap();
         let xpub_1 = xpub_1.derive("m/0").unwrap();

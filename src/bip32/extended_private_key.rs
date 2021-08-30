@@ -186,8 +186,8 @@ impl ExtendedPrivateKey {
         Ok(())
     }
 
-    pub fn to_x_pub(&self) -> ExtendedPublicKey {
-        ExtendedPublicKey::from_x_priv(self)
+    pub fn to_xpub(&self) -> ExtendedPublicKey {
+        ExtendedPublicKey::from_x_prv(self)
     }
 
     /// Set last four bytes the checksum of the body
