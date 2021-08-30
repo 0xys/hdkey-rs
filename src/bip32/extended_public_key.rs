@@ -22,6 +22,14 @@ pub struct ExtendedPublicKey {
     bytes: [u8;82]
 }
 
+const RANGE_VERSION: std::ops::Range<usize> = 0..4;
+const RANGE_DEPTH: std::ops::Range<usize> = 4..4;
+const RANGE_FINGERPRINT: std::ops::Range<usize> = 5..9;
+const RANGE_CHILD_NUMBER: std::ops::Range<usize> = 9..13;
+const RANGE_CHAIN_CODE: std::ops::Range<usize> = 13..45;
+const RANGE_PUBLIC_KEY: std::ops::Range<usize> = 45..78;
+const RANGE_CHECKSUM: std::ops::Range<usize> = 78..82;
+
 impl ExtendedPublicKey {
     pub fn to_base58(&self) -> String {
         self.bytes.to_base58()
@@ -32,26 +40,15 @@ impl ExtendedPublicKey {
         ExtendedPublicKey::deserialize(bytes.as_slice()).unwrap()
     }
 
-    pub fn from_x_priv(ext_priv_key: &ExtendedPrivateKey) -> Self {
+    pub fn from_x_priv(xprv: &ExtendedPrivateKey) -> Self {
         let mut bytes = [0u8; 82];
         
-        let tmp = ext_priv_key.version().to_pub();
-        bytes[0..4].copy_from_slice(&tmp.serialize());
-
-        bytes[4] = *ext_priv_key.depth();
-
-        let tmp = ext_priv_key.fingerprint();
-        bytes[5..9].copy_from_slice(&tmp.serialize());
-
-        let tmp = ext_priv_key.child_number();
-        bytes[9..13].copy_from_slice(&tmp.serialize());
-
-        let tmp = ext_priv_key.chain_code();
-        bytes[13..45].copy_from_slice(tmp);
-
-        let tmp = ext_priv_key.public_key();
-        bytes[45..78].copy_from_slice(&tmp);
-
+        bytes[RANGE_VERSION].copy_from_slice(&xprv.bytes[RANGE_VERSION]);
+        bytes[4] = xprv.bytes[4];
+        bytes[RANGE_FINGERPRINT].copy_from_slice(&xprv.bytes[RANGE_FINGERPRINT]);
+        bytes[RANGE_CHILD_NUMBER].copy_from_slice(&xprv.bytes[RANGE_CHILD_NUMBER]);
+        bytes[RANGE_CHAIN_CODE].copy_from_slice(&xprv.bytes[RANGE_CHAIN_CODE]);
+        bytes[RANGE_PUBLIC_KEY].copy_from_slice(&xprv.public_key());
         Self::add_checksum(&mut bytes);
 
         ExtendedPublicKey {
@@ -59,7 +56,7 @@ impl ExtendedPublicKey {
         }
     }
 
-    pub fn derive<T: AsRef<str>>(&self, path: T) -> Result<Self, Error> {
+    pub fn derive<T: AsRef<str>>(&mut self, path: T) -> Result<Self, Error> {
         let nodes = match valiidate_path(path.as_ref(), false) {
             Err(err) => return Err(err),
             Ok(x) => x

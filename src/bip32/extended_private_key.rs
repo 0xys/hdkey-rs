@@ -29,7 +29,7 @@ pub struct ExtendedPrivateKey {
     // child_number: ChildNumber,
     // chain_code: [u8;32],
     // k: [u8;33],
-    bytes: [u8; 82]
+    pub bytes: [u8; 82]
 }
 
 const RANGE_VERSION: std::ops::Range<usize> = 0..4;
@@ -108,7 +108,7 @@ impl ExtendedPrivateKey {
         ExtendedPrivateKey::deserialize(bytes.as_slice()).unwrap()
     }
 
-    pub fn derive_hardended_child(&self, index: u32) -> Result<Self, Error> {
+    pub fn derive_hardended_child(&mut self, index: u32) -> Result<Self, Error> {
         if index >= 2147483648 {
             return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
@@ -143,33 +143,33 @@ impl ExtendedPrivateKey {
     }
 
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
-    pub fn _derive_hardended_child(&self, index: u32) -> Result<Self, Error> {
-        if index >= 2147483648 {
-            return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
-        }
+    // pub fn _derive_hardended_child(&self, index: u32) -> Result<Self, Error> {
+    //     if index >= 2147483648 {
+    //         return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
+    //     }
 
-        // for hardened index.
-        let index = index + 2147483648;
+    //     // for hardened index.
+    //     let index = index + 2147483648;
         
-        let mut data = vec![0u8;37];
-        data[1..33].copy_from_slice(&self.private_key());
-        data[33..].copy_from_slice(&ChildNumber::from_u32(index).0[..]);
+    //     let mut data = vec![0u8;37];
+    //     data[1..33].copy_from_slice(&self.private_key());
+    //     data[33..].copy_from_slice(&ChildNumber::from_u32(index).0[..]);
 
-        let i = HMAC::mac(data, self.chain_code);
-        let (k, c) = self.transform_i_to_k_and_c(&i);
+    //     let i = HMAC::mac(data, self.chain_code);
+    //     let (k, c) = self.transform_i_to_k_and_c(&i);
 
-        let key = ExtendedPrivateKey {
-            version: self.version,
-            depth: self.depth + 1,
-            fingerprint: Fingerprint::from_xpriv(&self),
-            child_number: ChildNumber::from_u32(index),
-            k: k,
-            chain_code: c
-        };
-        Ok(key)
-    }
+    //     let key = ExtendedPrivateKey {
+    //         version: self.version,
+    //         depth: self.depth + 1,
+    //         fingerprint: Fingerprint::from_xpriv(&self),
+    //         child_number: ChildNumber::from_u32(index),
+    //         k: k,
+    //         chain_code: c
+    //     };
+    //     Ok(key)
+    // }
 
-    pub fn derive_child(&self, index: u32) -> Result<Self, Error> {
+    pub fn derive_child(&mut self, index: u32) -> Result<Self, Error> {
         if index >= 2147483648 {
             return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
         }
@@ -201,53 +201,53 @@ impl ExtendedPrivateKey {
     }
 
     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
-    pub fn _derive_child(&self, index: u32) -> Result<Self, Error> {
-        if index >= 2147483648 {
-            return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
-        }
+    // pub fn _derive_child(&self, index: u32) -> Result<Self, Error> {
+    //     if index >= 2147483648 {
+    //         return Err(Error::InvalidPath(PathError::IndexOutOfBounds(index)));
+    //     }
         
-        let mut data = vec![0u8;37];
-        data[0..33].copy_from_slice(&self.public_key());
-        data[33..].copy_from_slice(&ChildNumber::from_u32(index).0[..]);
+    //     let mut data = vec![0u8;37];
+    //     data[0..33].copy_from_slice(&self.public_key());
+    //     data[33..].copy_from_slice(&ChildNumber::from_u32(index).0[..]);
 
-        let i = HMAC::mac(data, self.chain_code);
-        let (k, c) = self.transform_i_to_k_and_c(&i);
+    //     let i = HMAC::mac(data, self.chain_code);
+    //     let (k, c) = self.transform_i_to_k_and_c(&i);
 
-        let key = ExtendedPrivateKey {
-            version: self.version,
-            depth: self.depth + 1,
-            fingerprint: Fingerprint::from_xpriv(&self),
-            child_number: ChildNumber::from_u32(index),
-            k: k,
-            chain_code: c
-        };
-        Ok(key)
-    }
+    //     let key = ExtendedPrivateKey {
+    //         version: self.version,
+    //         depth: self.depth + 1,
+    //         fingerprint: Fingerprint::from_xpriv(&self),
+    //         child_number: ChildNumber::from_u32(index),
+    //         k: k,
+    //         chain_code: c
+    //     };
+    //     Ok(key)
+    // }
 
-    pub fn _derive<T: AsRef<str>>(&self, path: T) -> Result<Self, Error> {
-        let nodes = match valiidate_path(path.as_ref(), true) {
-            Err(err) => return Err(err),
-            Ok(x) => x
-        };
+    // pub fn _derive<T: AsRef<str>>(&self, path: T) -> Result<Self, Error> {
+    //     let nodes = match valiidate_path(path.as_ref(), true) {
+    //         Err(err) => return Err(err),
+    //         Ok(x) => x
+    //     };
 
-        Self::derive_from(&self, &nodes)
-    }
+    //     Self::derive_from(&self, &nodes)
+    // }
 
     pub fn to_x_pub(&self) -> ExtendedPublicKey {
         ExtendedPublicKey::from_x_priv(self)
     }
 
-    fn _derive_from(current: &Self, nodes: &[Node]) -> Result<Self, Error> {
-        if nodes.len() == 0 {
-            return Ok(current.clone());
-        }else{
-            let child = match nodes[0].hardened {
-                false => current.derive_child(nodes[0].index)?,
-                true => current.derive_hardended_child(nodes[0].index)?,
-            };
-            return Self::derive_from(&child, &nodes[1..]);
-        }
-    }
+    // fn _derive_from(current: &Self, nodes: &[Node]) -> Result<Self, Error> {
+    //     if nodes.len() == 0 {
+    //         return Ok(current.clone());
+    //     }else{
+    //         let child = match nodes[0].hardened {
+    //             false => current.derive_child(nodes[0].index)?,
+    //             true => current.derive_hardended_child(nodes[0].index)?,
+    //         };
+    //         return Self::derive_from(&child, &nodes[1..]);
+    //     }
+    // }
 
     /// Set last four bytes the checksum of the body
     /// 
@@ -291,18 +291,18 @@ impl ExtendedPrivateKey {
         bytes[12] = (c & 0xff) as u8;
     }
 
-    fn transform_i_to_k_and_c(&self, i: &[u8; 64]) -> ([u8; 33], [u8; 32]) {
-        let (i_left, i_right) = split_i(&i);
+    // fn transform_i_to_k_and_c(&self, i: &[u8; 64]) -> ([u8; 33], [u8; 32]) {
+    //     let (i_left, i_right) = split_i(&i);
     
-        let u8vec = add_scalar_be(&self.private_key(), &i_left);
+    //     let u8vec = add_scalar_be(&self.private_key(), &i_left);
     
-        let mut k = [0u8; 33];
-        let mut k_vec = vec![0u8;33];
-        k_vec[1..33].copy_from_slice(&u8vec);
-        k.copy_from_slice(k_vec.as_slice());
+    //     let mut k = [0u8; 33];
+    //     let mut k_vec = vec![0u8;33];
+    //     k_vec[1..33].copy_from_slice(&u8vec);
+    //     k.copy_from_slice(k_vec.as_slice());
 
-        (k, i_right)
-    }
+    //     (k, i_right)
+    // }
 }
 
 impl PublicKey for ExtendedPrivateKey {
@@ -315,7 +315,7 @@ impl PublicKey for ExtendedPrivateKey {
 impl PrivateKey for ExtendedPrivateKey {
     fn private_key(&self) -> [u8;32] {
         let mut k = [0u8; 32];
-        k.copy_from_slice(&self.k[1..33]);
+        k.copy_from_slice(&self.bytes[RANGE_PRIVATE_KEY]);
         k
     }
 }
@@ -344,12 +344,7 @@ fn add_scalar_be(a: &mut [u8], b: &[u8]) {
 impl Serialize<[u8; 78]> for ExtendedPrivateKey {
     fn serialize(&self) -> [u8; 78] {
         let mut bytes = [0u8; 78];
-        bytes[0..4].copy_from_slice(&self.version.serialize());
-        bytes[4] = self.depth;
-        bytes[5..9].copy_from_slice(&self.fingerprint.serialize());
-        bytes[9..13].copy_from_slice(&self.child_number.serialize());
-        bytes[13..45].copy_from_slice(&self.chain_code);
-        bytes[45..78].copy_from_slice(&self.k);
+        bytes.copy_from_slice(&self.bytes[0..78]);
         bytes
     }
 }
@@ -363,19 +358,10 @@ impl Deserialize<&[u8], Error> for ExtendedPrivateKey {
             return Err(Error::DeseializeError(DeserializationError::WrongCheckSum));
         }
 
-        let mut c = [0u8; 32];
-        c.copy_from_slice(&bytes[13..45]);
-
-        let mut k = [0u8; 33];
-        k.copy_from_slice(&bytes[45..78]);        
-
+        let mut tmp = [0u8; 82];
+        tmp.copy_from_slice(bytes);
         let res = ExtendedPrivateKey {
-            version: Version::deserialize(&bytes[0..4]).unwrap(),
-            depth: bytes[4],
-            fingerprint: Fingerprint::deserialize(&bytes[5..9]).unwrap(),
-            child_number: ChildNumber::deserialize(&bytes[9..13]).unwrap(),
-            k: k,
-            chain_code: c
+            bytes: tmp
         };
 
         Ok(res)
