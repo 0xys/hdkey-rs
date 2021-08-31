@@ -50,9 +50,9 @@ impl ExtendedPublicKey {
     pub fn from_xprv(xprv: &ExtendedPrivateKey) -> Self {
         let mut bytes = [0u8; 82];
         
-        let version = Version::deserialize(&xprv.bytes[RANGE_VERSION]).unwrap();
+        let version = Self::_get_pub_version_of(&xprv.bytes[RANGE_VERSION]);
+        bytes[RANGE_VERSION].copy_from_slice(&version);
 
-        bytes[RANGE_VERSION].copy_from_slice(&version.to_pub().serialize());
         bytes[4..45].copy_from_slice(&xprv.bytes[4..45]);
         bytes[RANGE_PUBLIC_KEY].copy_from_slice(&xprv.public_key());
         Self::_add_checksum(&mut bytes);
@@ -181,6 +181,18 @@ impl ExtendedPublicKey {
         bytes[10] = ((c >> 16) & 0xff) as u8;
         bytes[11] = ((c >> 8) & 0xff) as u8;
         bytes[12] = (c & 0xff) as u8;
+    }
+
+    #[inline(always)]
+    fn _get_pub_version_of(bytes: &[u8]) -> [u8; 4] {
+        let a = match *bytes {
+            [0x04, 0x88, 0xb2, 0x1e] => [0x04, 0x88, 0xb2, 0x1e],
+            [0x04, 0x88, 0xad, 0xe4] => [0x04, 0x88, 0xb2, 0x1e],
+            [0x04, 0x35, 0x87, 0xcf] => [0x04, 0x35, 0x87, 0xcf],
+            [0x04, 0x35, 0x83, 0x94] => [0x04, 0x35, 0x87, 0xcf],
+            _ => [0x04, 0x88, 0xb2, 0x1e]
+        };
+        a
     }
 }
 
