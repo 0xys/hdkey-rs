@@ -93,6 +93,17 @@ impl ExtendedPublicKey {
 
     /// Derive child node at index. 
     /// 
+    /// # Example
+    /// ```
+    /// let bs58 = "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8";
+    /// let xpub = ExtendedPublicKey::from_base58(bs58);
+    /// 
+    /// let xpub = xpub.derive(10).unwrap();
+    /// let base58 = xpub.to_base58().as_str();
+    /// 
+    /// assert_eq!(base58, "xpub68Gmy5EVb2BdfkwrdBSeXLfCa2eNwfQoEgKy43kG2Y4qk5mYWJLZSXVpf8Q59mo48GLnrK8BfLdUgMvXGHw9psBJuaZfS2EnH67Gn4TxBAk");
+    /// ```
+    /// 
     pub fn derive_child(&self, index: u32) -> Result<Self, Error> {
         let mut bytes = [0u8; 82];
         bytes.copy_from_slice(&self.bytes);
