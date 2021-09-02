@@ -64,6 +64,17 @@ impl ExtendedPublicKey {
 
     /// Derive child node by path from current node.
     /// 
+    ///  # Example
+    /// ```
+    /// let bs58 = "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8";
+    /// let xpub = ExtendedPublicKey::from_base58(bs58);
+    /// 
+    /// let xpub = xpub.derive("m/10").unwrap();
+    /// let base58 = xpub.to_base58().as_str();
+    /// 
+    /// assert_eq!(base58, "xpub68Gmy5EVb2BdfkwrdBSeXLfCa2eNwfQoEgKy43kG2Y4qk5mYWJLZSXVpf8Q59mo48GLnrK8BfLdUgMvXGHw9psBJuaZfS2EnH67Gn4TxBAk");
+    /// ```
+    /// 
     pub fn derive<T: AsRef<str>>(&self, path: T) -> Result<Self, Error> {       
         let nodes = match valiidate_path(path.as_ref(), false) {
             Err(err) => return Err(err),
@@ -98,7 +109,7 @@ impl ExtendedPublicKey {
     /// let bs58 = "xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4Q1Rdap9gSE8NqtwybGhePY2gZ29ESFjqJoCu1Rupje8YtGqsefD265TMg7usUDFdp6W1EGMcet8";
     /// let xpub = ExtendedPublicKey::from_base58(bs58);
     /// 
-    /// let xpub = xpub.derive(10).unwrap();
+    /// let xpub = xpub.derive_child(10).unwrap();
     /// let base58 = xpub.to_base58().as_str();
     /// 
     /// assert_eq!(base58, "xpub68Gmy5EVb2BdfkwrdBSeXLfCa2eNwfQoEgKy43kG2Y4qk5mYWJLZSXVpf8Q59mo48GLnrK8BfLdUgMvXGHw9psBJuaZfS2EnH67Gn4TxBAk");
