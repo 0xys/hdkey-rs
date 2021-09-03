@@ -1,8 +1,6 @@
 pub mod extended_public_key;
 pub mod extended_private_key;
 pub mod version;
-pub mod fingerprint;
-pub mod child_number;
 pub mod checksum;
 
 pub mod helpers;

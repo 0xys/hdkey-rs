@@ -17,7 +17,7 @@ mod tests {
         //  --------------------------------------------------------------------------------------------------------------------------------
         let xpriv_master = ExtendedPrivateKey::from_seed_hex(seed_hex_str).unwrap();
         let xpriv = xpriv_master.clone();
-        let xpub = xpriv.to_x_pub();
+        let xpub = xpriv.to_xpub();
 
         // xpub
         let bs58 = xpub.to_base58();
@@ -31,8 +31,8 @@ mod tests {
         // --------------------------------------------------------------------------------------------------------------------------------
         // m/0'
         // --------------------------------------------------------------------------------------------------------------------------------
-        let xpriv = xpriv.derive_hardended_child(0).unwrap();
-        let xpub = xpriv.to_x_pub();
+        let xpriv = xpriv.derive_hardened_child(0).unwrap();
+        let xpub = xpriv.to_xpub();
 
         // xpub
         let bs58 = xpub.to_base58();
@@ -44,7 +44,7 @@ mod tests {
 
         // from master
         let xpriv_from_master = xpriv_master.derive("m/0'").unwrap();
-        let xpub_from_master = xpriv_from_master.to_x_pub();
+        let xpub_from_master = xpriv_from_master.to_xpub();
 
         let bs58 = xpub_from_master.to_base58();
         assert_eq!("xpub68Gmy5EdvgibQVfPdqkBBCHxA5htiqg55crXYuXoQRKfDBFA1WEjWgP6LHhwBZeNK1VTsfTFUHCdrfp1bgwQ9xv5ski8PX9rL2dZXvgGDnw", bs58);
@@ -56,7 +56,7 @@ mod tests {
         // m/0'/1
         // --------------------------------------------------------------------------------------------------------------------------------
         let xpriv = xpriv.derive_child(1).unwrap();
-        let xpub = xpriv.to_x_pub();
+        let xpub = xpriv.to_xpub();
 
         // xpub
         let bs58 = xpub.to_base58();
@@ -68,7 +68,7 @@ mod tests {
 
         // from master
         let xpriv_from_master = xpriv_master.derive("m/0'/1").unwrap();
-        let xpub_from_master = xpriv_from_master.to_x_pub();
+        let xpub_from_master = xpriv_from_master.to_xpub();
 
         let bs58 = xpub_from_master.to_base58();
         assert_eq!("xpub6ASuArnXKPbfEwhqN6e3mwBcDTgzisQN1wXN9BJcM47sSikHjJf3UFHKkNAWbWMiGj7Wf5uMash7SyYq527Hqck2AxYysAA7xmALppuCkwQ", bs58);
@@ -79,8 +79,8 @@ mod tests {
         // --------------------------------------------------------------------------------------------------------------------------------
         // m/0'/1/2'
         // --------------------------------------------------------------------------------------------------------------------------------
-        let xpriv = xpriv.derive_hardended_child(2).unwrap();
-        let xpub = xpriv.to_x_pub();
+        let xpriv = xpriv.derive_hardened_child(2).unwrap();
+        let xpub = xpriv.to_xpub();
 
         // xpub
         let bs58 = xpub.to_base58();
@@ -92,7 +92,7 @@ mod tests {
 
         // from master
         let xpriv_from_master = xpriv_master.derive("m/0'/1/2'").unwrap();
-        let xpub_from_master = xpriv_from_master.to_x_pub();
+        let xpub_from_master = xpriv_from_master.to_xpub();
 
         let bs58 = xpub_from_master.to_base58();
         assert_eq!("xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4trkrX7x7DogT5Uv6fcLW5", bs58);
@@ -104,7 +104,7 @@ mod tests {
         // m/0'/1/2'/2
         // --------------------------------------------------------------------------------------------------------------------------------
         let xpriv = xpriv_master.derive("m/0'/1/2'/2").unwrap();
-        let xpub = xpriv.to_x_pub();
+        let xpub = xpriv.to_xpub();
 
         // xpub
         let bs58 = xpub.to_base58();
@@ -116,7 +116,7 @@ mod tests {
 
         // from master
         let xpriv_from_master = xpriv_master.derive("m/0'/1/2'/2").unwrap();
-        let xpub_from_master = xpriv_from_master.to_x_pub();
+        let xpub_from_master = xpriv_from_master.to_xpub();
 
         let bs58 = xpub_from_master.to_base58();
         assert_eq!("xpub6FHa3pjLCk84BayeJxFW2SP4XRrFd1JYnxeLeU8EqN3vDfZmbqBqaGJAyiLjTAwm6ZLRQUMv1ZACTj37sR62cfN7fe5JnJ7dh8zL4fiyLHV", bs58);
@@ -128,7 +128,7 @@ mod tests {
         // m/0'/1/2'/2/1000000000
         // --------------------------------------------------------------------------------------------------------------------------------
         let xpriv = xpriv.derive_child(1000000000).unwrap();
-        let xpub = xpriv.to_x_pub();
+        let xpub = xpriv.to_xpub();
 
         // xpub
         let bs58 = xpub.to_base58();
@@ -140,7 +140,7 @@ mod tests {
     
         // from master
         let xpriv_from_master = xpriv_master.derive("m/0'/1/2'/2/1000000000").unwrap();
-        let xpub_from_master = xpriv_from_master.to_x_pub();
+        let xpub_from_master = xpriv_from_master.to_xpub();
 
         let bs58 = xpub_from_master.to_base58();
         assert_eq!("xpub6H1LXWLaKsWFhvm6RVpEL9P4KfRZSW7abD2ttkWP3SSQvnyA8FSVqNTEcYFgJS2UaFcxupHiYkro49S8yGasTvXEYBVPamhGW6cFJodrTHy", bs58);
@@ -159,7 +159,7 @@ mod tests {
         //  --------------------------------------------------------------------------------------------------------------------------------
         let xpriv_master = ExtendedPrivateKey::from_seed_hex(seed_hex_str).unwrap();
         let xpriv = xpriv_master.clone();
-        let xpub = xpriv.to_x_pub();
+        let xpub = xpriv.to_xpub();
 
         // xpub
         let bs58 = xpub.to_base58();
@@ -174,7 +174,7 @@ mod tests {
         //  m/0
         //  --------------------------------------------------------------------------------------------------------------------------------
         let xpriv = xpriv.derive_child(0).unwrap();
-        let xpub = xpriv.to_x_pub();
+        let xpub = xpriv.to_xpub();
 
         // xpub
         let bs58 = xpub.to_base58();
@@ -186,7 +186,7 @@ mod tests {
 
         // from master
         let xpriv_from_master = xpriv_master.derive("m/0").unwrap();
-        let xpub_from_master = xpriv_from_master.to_x_pub();
+        let xpub_from_master = xpriv_from_master.to_xpub();
 
         let bs58 = xpub_from_master.to_base58();
         assert_eq!("xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH", bs58);
@@ -197,8 +197,8 @@ mod tests {
         //  --------------------------------------------------------------------------------------------------------------------------------
         //  m/0/2147483647'
         //  --------------------------------------------------------------------------------------------------------------------------------
-        let xpriv = xpriv.derive_hardended_child(2147483647).unwrap();
-        let xpub = xpriv.to_x_pub();
+        let xpriv = xpriv.derive_hardened_child(2147483647).unwrap();
+        let xpub = xpriv.to_xpub();
 
         // xpub
         let bs58 = xpub.to_base58();
@@ -210,7 +210,7 @@ mod tests {
 
         // from master
         let xpriv_from_master = xpriv_master.derive("m/0/2147483647'").unwrap();
-        let xpub_from_master = xpriv_from_master.to_x_pub();
+        let xpub_from_master = xpriv_from_master.to_xpub();
 
         let bs58 = xpub_from_master.to_base58();
         assert_eq!("xpub6ASAVgeehLbnwdqV6UKMHVzgqAG8Gr6riv3Fxxpj8ksbH9ebxaEyBLZ85ySDhKiLDBrQSARLq1uNRts8RuJiHjaDMBU4Zn9h8LZNnBC5y4a", bs58);
@@ -222,7 +222,7 @@ mod tests {
         //  m/0/2147483647'/1
         //  --------------------------------------------------------------------------------------------------------------------------------
         let xpriv = xpriv.derive_child(1).unwrap();
-        let xpub = xpriv.to_x_pub();
+        let xpub = xpriv.to_xpub();
 
         // xpub
         let bs58 = xpub.to_base58();
@@ -234,7 +234,7 @@ mod tests {
 
         // from master
         let xpriv_from_master = xpriv_master.derive("m/0/2147483647'/1").unwrap();
-        let xpub_from_master = xpriv_from_master.to_x_pub();
+        let xpub_from_master = xpriv_from_master.to_xpub();
 
         let bs58 = xpub_from_master.to_base58();
         assert_eq!("xpub6DF8uhdarytz3FWdA8TvFSvvAh8dP3283MY7p2V4SeE2wyWmG5mg5EwVvmdMVCQcoNJxGoWaU9DCWh89LojfZ537wTfunKau47EL2dhHKon", bs58);
@@ -245,8 +245,8 @@ mod tests {
         //  --------------------------------------------------------------------------------------------------------------------------------
         //  m/0/2147483647'/1/2147483646'
         //  --------------------------------------------------------------------------------------------------------------------------------
-        let xpriv = xpriv.derive_hardended_child(2147483646).unwrap();
-        let xpub = xpriv.to_x_pub();
+        let xpriv = xpriv.derive_hardened_child(2147483646).unwrap();
+        let xpub = xpriv.to_xpub();
 
         // xpub
         let bs58 = xpub.to_base58();
@@ -258,7 +258,7 @@ mod tests {
 
         // from master
         let xpriv_from_master = xpriv_master.derive("m/0/2147483647'/1/2147483646'").unwrap();
-        let xpub_from_master = xpriv_from_master.to_x_pub();
+        let xpub_from_master = xpriv_from_master.to_xpub();
 
         let bs58 = xpub_from_master.to_base58();
         assert_eq!("xpub6ERApfZwUNrhLCkDtcHTcxd75RbzS1ed54G1LkBUHQVHQKqhMkhgbmJbZRkrgZw4koxb5JaHWkY4ALHY2grBGRjaDMzQLcgJvLJuZZvRcEL", bs58);
@@ -270,7 +270,7 @@ mod tests {
         //  m/0/2147483647'/1/2147483646'/2
         //  --------------------------------------------------------------------------------------------------------------------------------
         let xpriv = xpriv.derive_child(2).unwrap();
-        let xpub = xpriv.to_x_pub();
+        let xpub = xpriv.to_xpub();
 
         // xpub
         let bs58 = xpub.to_base58();
@@ -282,7 +282,7 @@ mod tests {
         
         // from master
         let xpriv_from_master = xpriv_master.derive("m/0/2147483647'/1/2147483646'/2").unwrap();
-        let xpub_from_master = xpriv_from_master.to_x_pub();
+        let xpub_from_master = xpriv_from_master.to_xpub();
 
         let bs58 = xpub_from_master.to_base58();
         assert_eq!("xpub6FnCn6nSzZAw5Tw7cgR9bi15UV96gLZhjDstkXXxvCLsUXBGXPdSnLFbdpq8p9HmGsApME5hQTZ3emM2rnY5agb9rXpVGyy3bdW6EEgAtqt", bs58);
@@ -301,7 +301,7 @@ mod tests {
         //  --------------------------------------------------------------------------------------------------------------------------------
         let xpriv_master = ExtendedPrivateKey::from_seed_hex(seed_hex_str).unwrap();
         let xpriv = xpriv_master.clone();
-        let xpub = xpriv.to_x_pub();
+        let xpub = xpriv.to_xpub();
 
         // xpub
         let bs58 = xpub.to_base58();
@@ -315,8 +315,8 @@ mod tests {
         //  --------------------------------------------------------------------------------------------------------------------------------
         //  m/0'
         //  --------------------------------------------------------------------------------------------------------------------------------
-        let xpriv = xpriv.derive_hardended_child(0).unwrap();
-        let xpub = xpriv.to_x_pub();
+        let xpriv = xpriv.derive_hardened_child(0).unwrap();
+        let xpub = xpriv.to_xpub();
 
         // xpub
         let bs58 = xpub.to_base58();
@@ -328,7 +328,7 @@ mod tests {
         
         // from master
         let xpriv_from_master = xpriv_master.derive("m/0'").unwrap();
-        let xpub_from_master = xpriv_from_master.to_x_pub();
+        let xpub_from_master = xpriv_from_master.to_xpub();
 
         let bs58 = xpub_from_master.to_base58();
         assert_eq!("xpub68NZiKmJWnxxS6aaHmn81bvJeTESw724CRDs6HbuccFQN9Ku14VQrADWgqbhhTHBaohPX4CjNLf9fq9MYo6oDaPPLPxSb7gwQN3ih19Zm4Y", bs58);

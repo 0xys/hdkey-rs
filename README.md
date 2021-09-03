@@ -6,24 +6,42 @@ https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
 
 ## Usage
 ```rs
-let seed_hex_str = "000102030405060708090a0b0c0d0e0f";
+let seed = "000102030405060708090a0b0c0d0e0f";
+let master_prv = ExtendedPrivateKey::from_seed_hex(seed).unwrap();
 
-// from path
-let xpriv_master = ExtendedPrivateKey::from_seed_hex(seed_hex_str).unwrap();
-let xpriv = xpriv_master.derive("m/0'/1/2'").unwrap();
-let xpub = xpriv.to_x_pub();
+// xprv derivation
+let xprv = master_prv.derive("m/0/1'/123'/456").unwrap();
+let xprv_1 = xprv.to_base58();
 
-let bs58 = xpriv.to_base58();
-assert_eq!("xprv9z4pot5VBttmtdRTWfWQmoH1taj2axGVzFqSb8C9xaxKymcFzXBDptWmT7FwuEzG3ryjH4ktypQSAewRiNMjANTtpgP4mLTj34bhnZX7UiM", bs58);
+let xprv = master_prv.derive_child(0).unwrap();
+let xprv = xprv.derive_hardened_child(1).unwrap();
+let xprv = xprv.derive_hardened_child(123).unwrap();
+let xprv = xprv.derive_child(456).unwrap();
+let xprv_2 = xprv.to_base58();
 
-let bs58 = xpub.to_base58();
-assert_eq!("xpub6D4BDPcP2GT577Vvch3R8wDkScZWzQzMMUm3PWbmWvVJrZwQY4VUNgqFJPMM3No2dFDFGTsxxpG5uJh7n7epu4trkrX7x7DogT5Uv6fcLW5", bs58);
+assert_eq!(xprv_1, xprv_2);
 
-//  use keys::PublicKey
-let pubkey = xpub.public_key();     //  [u8; 33]
-let pubkey = xpriv.public_key();    //  [u8; 33]
+// xpub derivation
+let xpub = ExtendedPublicKey::from_xprv(&xprv);
+let xpub_1 = xpub.to_base58();
 
-//  use keys::PrivateKey
-let privkey = xpriv.private_key();  //  [u8; 32]
+let xprv = master_prv.derive("m/0/1'/123'").unwrap();
+let xpub = ExtendedPublicKey::from_xprv(&xprv);
+let xpub = xpub.derive_child(456).unwrap();
+let xpub_2 = xpub.to_base58();
+
+assert_eq!(xpub_1, xpub_2);
+
+// base58
+let xprv = ExtendedPrivateKey::from_base58(xprv_1);
+let xprv = xprv.derive_child(789).unwrap();
+let xpub = ExtendedPublicKey::from_xprv(&xprv);
+let xpub_3 = xpub.to_base58();
+
+let xpub = ExtendedPublicKey::from_base58(xpub_1);
+let xpub = xpub.derive_child(789).unwrap();
+let xpub_4 = xpub.to_base58();
+
+assert_eq!(xpub_3, xpub_4);
 
 ```
