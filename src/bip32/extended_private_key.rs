@@ -81,6 +81,10 @@ impl ExtendedPrivateKey {
 
     /// Derive hardened child node at index. 
     /// 
+    /// # Example
+    /// ```
+    /// let child = parent.derive_hardened_child(0).unwrap();
+    /// ```
     pub fn derive_hardened_child(&self, index: u32) -> Result<Self, Error> {
         let mut bytes = [0u8; 82];
         bytes.copy_from_slice(&self.bytes);
@@ -118,6 +122,10 @@ impl ExtendedPrivateKey {
 
     /// Derive child node at index. 
     /// 
+    /// # Example
+    /// ```
+    /// let child = parent.derive_child(0).unwrap();
+    /// ```
     pub fn derive_child(&self, index: u32) -> Result<Self, Error> {
         let mut bytes = [0u8; 82];
         bytes.copy_from_slice(&self.bytes);
@@ -154,6 +162,11 @@ impl ExtendedPrivateKey {
 
     /// Derive child node by path from current node.
     /// 
+    /// # Example
+    /// ```
+    /// let child = parent.derive("m/0/1'/123'").unwrap();
+    /// 
+    /// ```
     pub fn derive<T: AsRef<str>>(&self, path: T) -> Result<Self, Error> {
         let nodes = match valiidate_path(path.as_ref(), true) {
             Err(err) => return Err(err),
