@@ -115,6 +115,11 @@ impl ExtendedPrivateKey {
 
         let i = HMAC::mac(data, &bytes[RANGE_CHAIN_CODE]);
         bytes[RANGE_CHAIN_CODE].copy_from_slice(&i[32..]);
+
+        if !Self::_validate_i_l(&i[..32]) {
+            return Err(Error::InvalidPath(PathError::ResultingKeyInvalid(index)));
+        }
+
         Self::_add_scalar_be(&mut bytes[RANGE_PRIVATE_KEY], &i[..32]);
 
         Ok(())
@@ -155,6 +160,11 @@ impl ExtendedPrivateKey {
 
         let i = HMAC::mac(data, &bytes[RANGE_CHAIN_CODE]);
         bytes[RANGE_CHAIN_CODE].copy_from_slice(&i[32..]);
+
+        if !Self::_validate_i_l(&i[..32]) {
+            return Err(Error::InvalidPath(PathError::ResultingKeyInvalid(index)));
+        }
+
         Self::_add_scalar_be(&mut bytes[RANGE_PRIVATE_KEY], &i[..32]);
 
         Ok(())
@@ -255,6 +265,13 @@ impl ExtendedPrivateKey {
         bytes[10] = ((c >> 16) & 0xff) as u8;
         bytes[11] = ((c >> 8) & 0xff) as u8;
         bytes[12] = (c & 0xff) as u8;
+    }
+
+    fn _validate_i_l(il: &[u8]) -> bool {
+        match SigningKey::from_bytes(il) {
+            Ok(_) => return true,
+            _ => return false
+        }
     }
 }
 

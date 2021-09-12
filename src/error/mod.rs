@@ -22,6 +22,9 @@ pub enum PathError {
 
     /// unparsable character is included.
     Unparsable,
+
+    /// resulting key is in invalid range
+    ResultingKeyInvalid(u32)
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
