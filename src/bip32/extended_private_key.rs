@@ -122,6 +122,10 @@ impl ExtendedPrivateKey {
 
         Self::_add_scalar_be(&mut bytes[RANGE_PRIVATE_KEY], &i[..32]);
 
+        if !Self::_validate_k(&bytes[RANGE_PRIVATE_KEY]) {
+            return Err(Error::InvalidPath(PathError::ResultingKeyInvalid(index)));
+        }
+
         Ok(())
     }
 
@@ -166,6 +170,10 @@ impl ExtendedPrivateKey {
         }
 
         Self::_add_scalar_be(&mut bytes[RANGE_PRIVATE_KEY], &i[..32]);
+
+        if !Self::_validate_k(&bytes[RANGE_PRIVATE_KEY]) {
+            return Err(Error::InvalidPath(PathError::ResultingKeyInvalid(index)));
+        }
 
         Ok(())
     }
@@ -272,6 +280,16 @@ impl ExtendedPrivateKey {
             Ok(_) => return true,
             _ => return false
         }
+    }
+
+    fn _validate_k(k: &[u8]) -> bool {
+        let mut result = false;
+        for n in k {
+            if *n != 0 {
+                result = true; // don't skip remaining element to prevent timing attack.
+            }
+        }
+        result
     }
 }
 
